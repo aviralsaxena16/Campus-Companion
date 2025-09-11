@@ -1,24 +1,26 @@
-# In backend/app/main.py
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.api.endpoints import chat  # Import the chat router
 
-app = FastAPI()
+app = FastAPI(title="AI University Navigator API")
 
-# Define the origins that are allowed to make requests
+# Allowed origins (your frontend)
 origins = [
-    "http://localhost:3000", # The origin for your Next.js frontend
+    "http://localhost:3000",
 ]
 
-# Add the CORS middleware to your application
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=origins,         # Only allow frontend
     allow_credentials=True,
-    allow_methods=["*"], # Allows all methods (GET, POST, etc.)
-    allow_headers=["*"], # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
+
+# Include the chat router
+app.include_router(chat.router, prefix="/api")
 
 @app.get("/")
 def read_root():
-    return {"message": "Backend is running!"}
+    return {"message": "Backend is connected and running!"}
