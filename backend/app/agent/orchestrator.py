@@ -1,19 +1,18 @@
 # In backend/app/agent/orchestrator.py
 
 from langchain_groq import ChatGroq
-from langchain.prompts import ChatPromptTemplate
-from langchain.schema.output_parser import StrOutputParser
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.agents import AgentExecutor, create_openai_tools_agent
 from dotenv import load_dotenv
+from app.agent.tools.web_scraper_tool import WebScraperTool
+from app.agent.tools.calendar_tool import CreateCalendarEventTool 
+# Import our new tool
+from app.agent.tools.web_scraper_tool import WebScraperTool
 
-# Load environment variables from .env file
 load_dotenv()
 
-def get_agent_response(user_input: str):
-    """
-    A simple agent that uses an LLM to process and respond to user input.
-    """
-    # Initialize the language model
-    llm = ChatGroq(
+# 1. Initialize the LLM
+llm = ChatGroq(
         model="deepseek-r1-distill-llama-70b",
         temperature=0,
         max_tokens=None,
@@ -21,17 +20,31 @@ def get_agent_response(user_input: str):
         max_retries=2
     )
 
+# 2. Define the tools the agent can use
+tools = [WebScraperTool(),CreateCalendarEventTool()]
 
-    # Create a prompt template
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a helpful assistant. Rephrase the user's message in a clear and concise way."),
-        ("user", "{input}")
-    ])
+# 3. Create a more sophisticated prompt
+# This prompt tells the agent it has tools and how to think about using them.
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are a powerful AI assistant. You have access to a set of tools to help you answer questions. Your job is to reason about the user's request and decide if a tool is needed."),
+    ("user", "{input}"),
+    MessagesPlaceholder(variable_name="agent_scratchpad"), # This is where the agent's thought process and tool outputs will go
+])
 
-    # Create the processing chain
-    chain = prompt | llm | StrOutputParser()
+# 4. Create the tool-enabled agent
+agent = create_openai_tools_agent(llm, tools, prompt)
 
-    # Invoke the chain with the user's input
-    response = chain.invoke({"input": user_input})
+# 5. Create the Agent Executor
+# The executor is the runtime that makes the agent work. It calls the agent, gets back the chosen tool and input, runs the tool, and passes the result back to the agent.
+agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True) # verbose=True lets us see the agent's thoughts in the terminal
 
-    return response
+
+async def get_agent_response(user_input: str):
+    """
+    Processes user input through the tool-enabled agent executor.
+    """
+    response = await agent_executor.ainvoke({
+        "input": user_input
+    })
+
+    return response['output']
