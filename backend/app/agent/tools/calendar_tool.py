@@ -7,6 +7,7 @@ from typing import Type
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
+
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
@@ -74,9 +75,15 @@ class CreateCalendarEventTool(BaseTool):
                 'start': {'dateTime': start_time, 'timeZone': 'Asia/Kolkata'},
                 'end': {'dateTime': end_time, 'timeZone': 'Asia/Kolkata'},
             }
-            event = service.events().insert(calendarId='primary', body=event).execute()
-            return f"Event created successfully! View it here: {event.get('htmlLink')}"
+            created_event = service.events().insert(calendarId='primary', body=event).execute()
+            if 'htmlLink' in created_event:
+                return f"Event created successfully! View it here: {created_event['htmlLink']}"
+            else:
+                return "Event created, but no calendar link was returned."
         except HttpError as error:
-            return f"An error occurred: {error}"
+            # Log error for debugging
+            print(f"Google Calendar API error: {error}")
+            return "An error occurred trying to create the event with Google Calendar. Please check your credentials and input times."
         except Exception as e:
-            return f"An unexpected error occurred: {e}"
+            print(f"General error: {e}")
+            return "Unexpected error occurred while creating the event."

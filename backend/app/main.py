@@ -1,7 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.endpoints import chat  # Import the chat router
+import asyncio
+import sys
 
+# ADD THIS BLOCK AT THE VERY TOP
+# This checks if the OS is Windows and sets the correct asyncio policy.
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 app = FastAPI(title="AI University Navigator API")
 
 # Allowed origins (your frontend)
