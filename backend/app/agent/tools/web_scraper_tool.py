@@ -16,7 +16,6 @@ class WebScraperTool(BaseTool):
     args_schema: Type[BaseModel] = ScraperInput
 
     def _run(self, url: str):
-        # This tool is async-only, so we raise an error in the sync method.
         raise NotImplementedError("This tool is async only.")
 
     async def _arun(self, url: str):
@@ -29,28 +28,17 @@ class WebScraperTool(BaseTool):
                 )
                 page = await context.new_page()
                 await page.goto(url, timeout=20000)
-                # Wait for a generic headline element as a sign of content loaded
-                await page.wait_for_selector('h2', timeout=15000)
+                await page.wait_for_selector('h1, h2, body', timeout=15000)
                 html_content = await page.content()
                 await browser.close()
 
                 soup = BeautifulSoup(html_content, 'html.parser')
                 
-                # Attempt to parse specific structured data (example for GSOC)
-                events = []
-                timeline_items = soup.select('div.flex.justify-between.border-b.py-6') 
-                for item in timeline_items:
-                    date_tag = item.select_one('p.text-2xl')
-                    title_tag = item.select_one('h3.text-2xl')
-                    if date_tag and title_tag:
-                        events.append({"date": date_tag.text.strip(), "title": title_tag.text.strip()})
+                # Add custom parsing logic here if needed for specific sites
                 
-                if events:
-                    return json.dumps(events)
-                
-                # Fallback to returning raw text if specific structure isn't found
-                text_content = soup.get_text(separator=' ', strip=True)
-                return text_content[:4000]
+                # Fallback to returning raw text
+                raw_text = soup.get_text(separator=' ', strip=True)
+                return raw_text[:4000]
 
         except PlaywrightTimeoutError:
             return json.dumps({"error": "The page took too long to load or a key element was not found."})

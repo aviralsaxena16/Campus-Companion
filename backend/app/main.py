@@ -1,31 +1,35 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from app.api.endpoints import chat  # Import the chat router
+# In backend/app/main.py
+
 import asyncio
 import sys
 
-# ADD THIS BLOCK AT THE VERY TOP
-# This checks if the OS is Windows and sets the correct asyncio policy.
+# THIS BLOCK MUST BE THE FIRST THING TO RUN IN YOUR APPLICATION
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
+# NOW, aFTER THE POLICY IS SET, WE CAN IMPORT EVERYTHING ELSE
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from app.api.endpoints import chat
+from app.api.endpoints import chat, user
+from app import models
+from app.database import engine
 app = FastAPI(title="AI University Navigator API")
 
-# Allowed origins (your frontend)
 origins = [
     "http://localhost:3000",
 ]
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,         # Only allow frontend
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include the chat router
 app.include_router(chat.router, prefix="/api")
+app.include_router(user.router, prefix="/api")
 
 @app.get("/")
 def read_root():

@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, FormEvent, useRef, useEffect } from 'react';
+import AuthButtons from "@/components/AuthButtons"; // <-- IMPORT
 
 // Define the structure of a message object
 interface Message {
@@ -57,6 +58,10 @@ export default function Home() {
 
   return (
     <main className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
+      <header className="p-4 bg-white dark:bg-gray-800 border-b dark:border-gray-700 flex justify-between items-center">
+        <h1 className="text-xl font-bold">AI University Navigator</h1>
+        <AuthButtons /> {/* <-- ADD THE BUTTONS HERE */}
+      </header>
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, index) => (
           <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>

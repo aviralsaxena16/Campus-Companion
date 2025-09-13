@@ -10,6 +10,8 @@
 !.yarn/releases
 !.yarn/versions
 .env
+frontend/.env
+/.env
 # testing
 /coverage
 

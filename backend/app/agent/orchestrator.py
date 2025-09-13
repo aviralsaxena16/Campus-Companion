@@ -26,16 +26,9 @@ tools = [WebScraperTool(),CreateCalendarEventTool()]
 # 3. Create a more sophisticated prompt
 # This prompt tells the agent it has tools and how to think about using them.
 prompt = ChatPromptTemplate.from_messages([
-    ("system", 
-     "You are a powerful AI university navigator. Your job is to help students by finding information and scheduling events. "
-     "First, reason about the user's request to form a plan. "
-     "Then, use your available tools to execute the plan step-by-step. "
-     "After you have successfully used a tool to perform an action (like creating a calendar event), you MUST report that the action was completed successfully and concisely. "
-     "Provide the key information in your final answer, for example: 'I have scheduled the [Event Name] for you.' "
-     "Do not apologize or second-guess the output of your tools. State the successful outcome clearly."
-    ),
+    ("system", "You are a powerful AI assistant. You have access to a set of tools to help you answer questions. Your job is to reason about the user's request and decide if a tool is needed."),
     ("user", "{input}"),
-    MessagesPlaceholder(variable_name="agent_scratchpad"),
+    MessagesPlaceholder(variable_name="agent_scratchpad"), # This is where the agent's thought process and tool outputs will go
 ])
 
 # 4. Create the tool-enabled agent
