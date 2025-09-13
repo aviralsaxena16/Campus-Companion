@@ -7,6 +7,6 @@ router = APIRouter()
 
 @router.post("/chat", response_model=ChatResponse)
 async def handle_chat(request: ChatRequest):
-    # FIX: Add 'await' here
-    agent_message = await get_agent_response(request.message)
+    # Pass the email to the agent
+    agent_message = await get_agent_response(request.message, request.user_email)
     return ChatResponse(response=agent_message)

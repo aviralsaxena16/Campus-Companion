@@ -39,12 +39,11 @@ agent = create_openai_tools_agent(llm, tools, prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True) # verbose=True lets us see the agent's thoughts in the terminal
 
 
-async def get_agent_response(user_input: str):
-    """
-    Processes user input through the tool-enabled agent executor.
-    """
+async def get_agent_response(user_input: str, user_email: str): # Add user_email
+    """Processes user input through the agent executor asynchronously."""
+    # We add the user_email to the input, so the agent knows who the user is
     response = await agent_executor.ainvoke({
-        "input": user_input
+        "input": user_input,
+        "user_email": user_email 
     })
-
     return response['output']

@@ -14,6 +14,9 @@ from app.api.endpoints import chat
 from app.api.endpoints import chat, user
 from app import models
 from app.database import engine
+
+
+# THIS IS THE LINE THAT CREATES THE TABLES
 app = FastAPI(title="AI University Navigator API")
 
 origins = [
@@ -27,6 +30,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+models.Base.metadata.create_all(bind=engine)
 
 app.include_router(chat.router, prefix="/api")
 app.include_router(user.router, prefix="/api")

@@ -12,6 +12,7 @@
 .env
 frontend/.env
 /.env
+.env
 # testing
 /coverage
 
