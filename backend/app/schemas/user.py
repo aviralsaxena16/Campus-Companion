@@ -7,6 +7,9 @@ class UserCreate(BaseModel):
 class UserResponse(BaseModel):
     id: int
     email: EmailStr
-
     class Config:
         from_attributes = True
+
+# ADD THIS NEW CLASS
+class ConnectAccountRequest(BaseModel):
+    user_email: EmailStr

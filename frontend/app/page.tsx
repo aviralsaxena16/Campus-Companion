@@ -3,7 +3,7 @@
 
 import { useState, FormEvent } from 'react';
 import { useSession } from 'next-auth/react';
-import { Send, Bot, User, CornerDownLeft } from 'lucide-react';
+import { Send, Bot, User, Link as LinkIcon } from 'lucide-react'; // Import LinkIcon
 
 import AuthButtons from '@/components/AuthButtons';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,27 @@ export default function Dashboard() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // TODO: Your handleConnectCalendar and handleSubmit functions will go here
+  // --- NEW FUNCTION to handle connecting Google Account ---
+  const handleConnectGoogle = async () => {
+    if (!session?.user?.email) {
+      alert("Please sign in first.");
+      return;
+    }
+    alert("This will trigger a browser pop-up for Google authentication. Please check your browser and complete the sign-in flow. The backend server terminal will guide you.");
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/users/connect_google_account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_email: session.user.email }),
+      });
+      const data = await response.json();
+      alert(data.message); // Show success message
+    } catch (error) {
+      console.error("Failed to connect Google Account:", error);
+      alert("Failed to connect Google Account. Check the console for details.");
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !session?.user?.email) return;
@@ -31,7 +51,6 @@ export default function Dashboard() {
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
     
-    // Updated fetch to include user_email
     try {
         const response = await fetch('http://127.0.0.1:8000/api/chat', {
             method: 'POST',
@@ -49,7 +68,6 @@ export default function Dashboard() {
     }
   };
 
-
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
       {/* Left Sidebar */}
@@ -57,10 +75,7 @@ export default function Dashboard() {
         <h2 className="text-2xl font-bold">Navigator</h2>
         <Separator className="my-4" />
         <nav className="flex flex-col space-y-2">
-            {/* TODO: Add navigation links here for Advisor, Scheduler etc. */}
             <Button variant="ghost" className="justify-start">Agent Chat</Button>
-            <Button variant="ghost" className="justify-start">Advisor Roadmap</Button>
-            <Button variant="ghost" className="justify-start">Scheduled Tasks</Button>
         </nav>
         <div className="mt-auto">
             <AuthButtons />
@@ -71,7 +86,13 @@ export default function Dashboard() {
       <main className="flex flex-1 flex-col">
         <header className="flex h-16 items-center justify-between border-b bg-white p-4 dark:bg-gray-800 dark:border-gray-700">
           <h1 className="text-xl font-semibold">AI Agent Chat</h1>
-           {/* TODO: Add "Connect Calendar" button here */}
+           {/* --- NEW BUTTON --- */}
+           {session && (
+            <Button onClick={handleConnectGoogle} variant="outline">
+                <LinkIcon className="mr-2 h-4 w-4" />
+                Connect Google Account
+            </Button>
+           )}
         </header>
         
         <div className="flex flex-1 overflow-hidden">
@@ -88,10 +109,9 @@ export default function Dashboard() {
                         </div>
                     ))}
                 </div>
-
                 <form onSubmit={handleSubmit} className="relative">
                     <Input
-                        placeholder="Ask your agent to find workshops, summarize a PDF, or create a plan..."
+                        placeholder="Ask your agent to 'check my email' or 'schedule the workshop from the Gist file'..."
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         disabled={!session || isLoading}
@@ -106,12 +126,9 @@ export default function Dashboard() {
             {/* Right Sidebar - Plan Monitor */}
             <aside className="w-80 border-l p-4 dark:bg-gray-800 dark:border-gray-700 hidden lg:block">
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Agent Plan</CardTitle>
-                    </CardHeader>
+                    <CardHeader><CardTitle>Agent Plan</CardTitle></CardHeader>
                     <CardContent>
-                        {/* TODO: This is where the Plan Monitoring UI will go */}
-                        <p className="text-sm text-gray-500">The agent's step-by-step plan will appear here as it works on your request.</p>
+                        <p className="text-sm text-gray-500">The agent's step-by-step plan will appear here...</p>
                     </CardContent>
                 </Card>
             </aside>
