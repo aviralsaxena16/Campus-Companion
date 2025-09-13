@@ -1,12 +1,10 @@
 # In backend/app/agent/tools/calendar_tool.py
-
 from typing import Type
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from langchain.tools import BaseTool
 from pydantic import BaseModel, Field
 
-# Import our new shared authentication service
 from app.services.google_auth import get_user_credentials
 
 class EventInput(BaseModel):
@@ -24,7 +22,6 @@ class CreateCalendarEventTool(BaseTool):
 
     def _run(self, title: str, start_time: str, end_time: str, location: str, description: str, user_email: str):
         try:
-            # Get credentials for the specific user
             credentials = get_user_credentials(user_email)
             service = build("calendar", "v3", credentials=credentials)
             
@@ -33,7 +30,7 @@ class CreateCalendarEventTool(BaseTool):
                 'start': {'dateTime': start_time, 'timeZone': 'Asia/Kolkata'},
                 'end': {'dateTime': end_time, 'timeZone': 'Asia/Kolkata'},
             }
-            event = service.events().insert(calendarId='primary', body=event).execute()
-            return f"Event created successfully for {user_email}! View it here: {event.get('htmlLink')}"
+            created_event = service.events().insert(calendarId='primary', body=event).execute()
+            return f"Event created successfully for {user_email}! View it here: {created_event.get('htmlLink')}"
         except Exception as e:
-            return f"An error occurred: {e}"
+            return f"An error occurred while creating the calendar event: {e}"
