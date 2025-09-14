@@ -5,60 +5,70 @@ import json
 
 from app import models
 from app.database import SessionLocal
-from app.agent.tools.gmail_reader_tool import GmailReaderTool
+# --- CHANGE: Import the new JSON tool ---
+from app.agent.tools.gmail_json_tool import GmailJsonTool
 from app.agent.orchestrator import llm
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers.json import JsonOutputParser
 
-# The scheduler is now a single instance we manage from main.py
 scheduler = AsyncIOScheduler()
 
-def summarize_email_job(user_email: str):
-    """The actual job that runs on a schedule for a given user."""
-    print(f"SCHEDULER: Running email scan for {user_email}...")
+def run_email_summary_for_user(user_email: str) -> list:
+    print(f"TASK: Running email scan for {user_email}...")
     db: Session = SessionLocal()
     try:
         user = db.query(models.User).filter(models.User.email == user_email).first()
-        if not user or not user.calendar_connected:
-            print(f"SCHEDULER: Skipping job for {user_email}: account not connected.")
-            return
+        if not user or not user.calendar_connected: return []
 
-        gmail_tool = GmailReaderTool()
-        emails_json_str = gmail_tool._run(user_email=user_email, query="is:unread in:inbox category:primary")
+        # --- CHANGE: Use the new JSON tool ---
+        gmail_tool = GmailJsonTool(user_email=user_email)
+        emails_json_str = gmail_tool.run()
         
         try:
             emails = json.loads(emails_json_str)
-            if not isinstance(emails, list) or not emails:
-                print(f"SCHEDULER: No new unread emails for {user_email}.")
-                return
-        except (json.JSONDecodeError, TypeError):
-             print(f"SCHEDULER: Could not decode emails or no new mail for {user_email}.")
-             return
+            if not isinstance(emails, list) or not emails: return []
+        except (json.JSONDecodeError, TypeError): return []
+
+        processed_email_ids = {update.source_id for update in db.query(models.ImportantUpdate).filter(models.ImportantUpdate.user_id == user.id).all()}
+        new_emails = [email for email in emails if email.get("id") not in processed_email_ids]
+
+        if not new_emails:
+            print(f"TASK: No new emails to process for {user_email}.")
+            all_updates = db.query(models.ImportantUpdate).filter(models.ImportantUpdate.user_id == user.id).order_by(models.ImportantUpdate.discovered_at.desc()).limit(20).all()
+            return all_updates
 
         summarizer_prompt = ChatPromptTemplate.from_template(
-            "You are an expert at identifying important emails. From the following JSON list of emails, identify any that contain urgent requests, deadlines, or meeting invitations. "
-            "Return a JSON list of objects, where each object has a 'title' (the email subject) and a 'summary' (a short, one-sentence summary of the important part). "
-            "If no emails are important, return an empty list. Emails:\n\n{emails}"
+            "You are an expert at identifying important emails containing urgent requests, deadlines, or meeting invitations. From the following JSON list of emails, return a JSON list of objects for the important ones. Each object must have a 'title' (the email subject) and a 'summary' (a short, one-sentence summary). If no emails are important, return an empty list. Emails:\n\n{emails}"
         )
         parser = JsonOutputParser()
         chain = summarizer_prompt | llm | parser
-        important_emails = chain.invoke({"emails": emails})
+        important_email_summaries = chain.invoke({"emails": new_emails})
 
-        for email_summary in important_emails:
-            new_update = models.ImportantUpdate(user_id=user.id, title=email_summary.get("title", "No Title"), summary=email_summary.get("summary", "No Summary"))
-            db.add(new_update)
+        for summary in important_email_summaries:
+            original_email_id = next((email['id'] for email in new_emails if email['subject'] == summary.get('title')), None)
+            if original_email_id:
+                new_update = models.ImportantUpdate(
+                    user_id=user.id,
+                    source_id=original_email_id,
+                    title=summary.get("title", "No Title"),
+                    summary=summary.get("summary", "No Summary"),
+                )
+                db.add(new_update)
         
         db.commit()
-        print(f"SCHEDULER: Saved {len(important_emails)} important updates for {user_email}.")
-    except Exception as e:
-        print(f"Error in scheduled job for {user_email}: {e}")
+        print(f"TASK: Saved {len(important_email_summaries)} new important updates for {user_email}.")
+        
+        all_updates = db.query(models.ImportantUpdate).filter(models.ImportantUpdate.user_id == user.id).order_by(models.ImportantUpdate.discovered_at.desc()).limit(20).all()
+        return all_updates
     finally:
         db.close()
 
+# The scheduled job is now just a lightweight wrapper
+def scheduled_job_wrapper(user_email: str):
+    run_email_summary_for_user(user_email)
+
 def start_scheduler_for_user(user_email: str):
-    """Adds a daily job for a user to the scheduler."""
     job_id = f"email_scan_{user_email}"
     if not scheduler.get_job(job_id):
-        # We only ADD the job here. We DO NOT start the scheduler.
-        scheduler.add_job(summarize_email_job, 'interval', days=1, args=[user_email], id=job_id)
+        scheduler.add_job(scheduled_job_wrapper, 'interval', days=1, args=[user_email], id=job_id)
         print(f"SCHEDULER: Scheduled daily email scan for {user_email}.")

@@ -19,6 +19,5 @@ class ImportantUpdateResponse(BaseModel):
     title: str
     summary: str
     discovered_at: datetime
-
     class Config:
         from_attributes = True

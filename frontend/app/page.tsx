@@ -61,7 +61,7 @@ export default function Dashboard() {
   );
 }
 
-// --- Chat View Component ---
+// --- Chat View Component (Self-contained within this file) ---
 const ChatView = () => {
     const { data: session } = useSession();
     const [messages, setMessages] = useState<Message[]>([]);
@@ -69,8 +69,28 @@ const ChatView = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [uploadedFilePath, setUploadedFilePath] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    const handleConnectGoogle = async () => { /* ... (same as before) ... */ };
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
+    const handleConnectGoogle = async () => {
+        if (!session?.user?.email) return alert("Please sign in first.");
+        alert("This will trigger a browser pop-up for Google authentication. Please check your browser and complete the sign-in flow.");
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/users/connect_google_account', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_email: session.user.email }),
+            });
+            const data = await response.json();
+            alert(data.message);
+        } catch (error) {
+            console.error("Failed to connect Google Account:", error);
+            alert("Failed to connect Google Account. Check the console for details.");
+        }
+    };
 
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -97,7 +117,7 @@ const ChatView = () => {
             alert((error as Error).message);
         } finally {
             setIsLoading(false);
-            if (fileInputRef.current) fileInputRef.current.value = ""; // Reset file input
+            if (fileInputRef.current) fileInputRef.current.value = "";
         }
     };
     
@@ -126,6 +146,8 @@ const ChatView = () => {
             setMessages((prev) => [...prev, { text: data.response, sender: 'ai' }]);
         } catch (error) {
             console.error("Chat API error:", error);
+            const errorMessage: Message = { text: 'Sorry, I ran into an error connecting to the agent.', sender: 'ai' };
+            setMessages((prev) => [...prev, errorMessage]);
         } finally {
             setIsLoading(false);
         }
@@ -147,11 +169,12 @@ const ChatView = () => {
                                 {msg.sender === 'user' && <User className="h-6 w-6" />}
                             </div>
                         ))}
+                        <div ref={messagesEndRef} />
                     </div>
                     <form onSubmit={handleSubmit} className="relative flex items-center gap-2">
                         <Button type="button" size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={isLoading}><Paperclip className="h-5 w-5" /></Button>
                         <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf" />
-                        <Input placeholder={uploadedFilePath ? `File "${uploadedFilePath.split('\\').pop()}" attached. Ask a question...` : "Ask your agent..."} value={input} onChange={(e) => setInput(e.target.value)} disabled={!session || isLoading} className="pr-12"/>
+                        <Input placeholder={uploadedFilePath ? `File "${uploadedFilePath.split(/[/\\]/).pop()}" attached. Ask a question...` : "Ask your agent..."} value={input} onChange={(e) => setInput(e.target.value)} disabled={!session || isLoading} className="pr-12"/>
                         <Button type="submit" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8" disabled={!session || isLoading}><Send className="h-4 w-4" /></Button>
                     </form>
                 </div>
@@ -168,39 +191,48 @@ const UpdatesView = () => {
     const { data: session } = useSession();
     const [updates, setUpdates] = useState<Update[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isScanning, setIsScanning] = useState(false);
 
     useEffect(() => {
         if (session?.user?.email) {
             setIsLoading(true);
             fetch(`http://127.0.0.1:8000/api/updates/${session.user.email}`)
                 .then(res => res.json())
-                .then(data => {
-                    setUpdates(data);
-                    setIsLoading(false);
-                }).catch(() => setIsLoading(false));
+                .then(data => { setUpdates(data); setIsLoading(false); })
+                .catch(() => setIsLoading(false));
         }
     }, [session]);
 
-    const handleSchedule = async () => {
+    const handleScanNow = async () => {
         if (!session?.user?.email) return;
-        const res = await fetch('http://127.0.0.1:8000/api/updates/schedule', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_email: session.user.email }),
-        });
-        const data = await res.json();
-        alert(data.message);
+        setIsScanning(true);
+        try {
+            const res = await fetch('http://127.0.0.1:8000/api/updates/scan_now', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_email: session.user.email }),
+            });
+            const data = await res.json();
+            setUpdates(data); // Refresh the UI with the new data
+        } catch (error) {
+            console.error("Failed to scan emails:", error);
+            alert("An error occurred during the scan.");
+        } finally {
+            setIsScanning(false);
+        }
     };
 
     return (
         <div className="flex flex-col h-full">
             <header className="flex h-16 items-center justify-between border-b bg-white p-4 dark:bg-gray-800 dark:border-gray-700">
                 <h1 className="text-xl font-semibold">Important Updates</h1>
-                <Button onClick={handleSchedule}>Start Daily Scan</Button>
+                <Button onClick={handleScanNow} disabled={isScanning}>
+                    {isScanning ? 'Scanning...' : 'Scan Emails Now'}
+                </Button>
             </header>
             <div className="flex-1 overflow-y-auto p-4 md:p-8">
                 <div className="w-full max-w-4xl mx-auto">
-                    <p className="text-gray-500 mb-6">Your agent's daily scan of important emails. Updates will appear here after the first scheduled run.</p>
+                    <p className="text-gray-500 mb-6">Your agent's scan of important emails. Click "Scan Emails Now" to get the latest updates.</p>
                     <div className="space-y-4">
                         {isLoading ? <p>Loading updates...</p> :
                          updates.length > 0 ? updates.map(update => (
@@ -211,7 +243,12 @@ const UpdatesView = () => {
                                 </CardHeader>
                                 <CardContent><p>{update.summary}</p></CardContent>
                             </Card>
-                         )) : <p>No important updates found yet. Start the daily scan and check back later!</p>}
+                         )) : (
+                            <Card className="text-center p-8">
+                                <CardHeader><CardTitle>No important updates found yet.</CardTitle></CardHeader>
+                                <CardContent><p>Click "Scan Emails Now" to get started!</p></CardContent>
+                            </Card>
+                         )}
                     </div>
                 </div>
             </div>

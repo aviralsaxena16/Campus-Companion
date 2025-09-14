@@ -2,11 +2,11 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
-
+from app.schemas.user import ConnectAccountRequest, ImportantUpdateResponse
 from app import models, schemas
 from app.database import SessionLocal
 from app.services.scheduler_service import start_scheduler_for_user
-
+from app.services.scheduler_service import start_scheduler_for_user, run_email_summary_for_user
 router = APIRouter()
 
 def get_db():
@@ -28,3 +28,9 @@ def get_updates(user_email: str, db: Session = Depends(get_db)):
         return []
     updates = db.query(models.ImportantUpdate).filter(models.ImportantUpdate.user_id == user.id).order_by(models.ImportantUpdate.discovered_at.desc()).all()
     return updates
+
+@router.post("/updates/scan_now", response_model=List[ImportantUpdateResponse])
+def scan_now(request: ConnectAccountRequest, db: Session = Depends(get_db)):
+    # This calls the core logic immediately
+    all_updates = run_email_summary_for_user(request.user_email)
+    return all_updates

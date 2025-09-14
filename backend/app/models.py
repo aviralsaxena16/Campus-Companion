@@ -17,6 +17,9 @@ class ImportantUpdate(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
+    
+    source_id = Column(String, unique=True, index=True) # <-- ADD THIS LINE
+    
     source = Column(String, default="email")
     title = Column(String)
     summary = Column(String)
