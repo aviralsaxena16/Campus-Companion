@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.endpoints import chat
 from app import models
-from app.api.endpoints import chat, user, updates
+from app.api.endpoints import chat, user, updates,files
 from app.database import engine
 from contextlib import asynccontextmanager
 
@@ -54,7 +54,7 @@ models.Base.metadata.create_all(bind=engine)
 app.include_router(chat.router, prefix="/api")
 app.include_router(user.router, prefix="/api")
 app.include_router(updates.router, prefix="/api")
-
+app.include_router(files.router, prefix="/api")
 @app.get("/")
 def read_root():
     return {"message": "Backend is connected and running!"}

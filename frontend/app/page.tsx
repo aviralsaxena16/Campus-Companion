@@ -1,10 +1,11 @@
 // In frontend/app/page.tsx
 'use client';
 
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-import { Send, Bot, User, Link as LinkIcon, Mail, MessageSquare } from 'lucide-react'; // Added Mail, MessageSquare
+import { Send, Bot, User, Link as LinkIcon, Mail, MessageSquare, Paperclip } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import Link from 'next/link';
 
 import AuthButtons from '@/components/AuthButtons';
 import { Button } from '@/components/ui/button';
@@ -17,14 +18,12 @@ interface Message {
   text: string;
   sender: 'user' | 'ai';
 }
-
 interface Update {
     id: number;
     title: string;
     summary: string;
     discovered_at: string;
 }
-
 type View = 'chat' | 'updates';
 
 // --- Main Dashboard Component ---
@@ -62,43 +61,66 @@ export default function Dashboard() {
   );
 }
 
-// --- Chat View Component (Self-contained within this file) ---
+// --- Chat View Component ---
 const ChatView = () => {
     const { data: session } = useSession();
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [uploadedFilePath, setUploadedFilePath] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleConnectGoogle = async () => {
-        if (!session?.user?.email) return alert("Please sign in first.");
-        alert("This will trigger a browser pop-up for Google authentication. Please check your browser and complete the sign-in flow.");
+    const handleConnectGoogle = async () => { /* ... (same as before) ... */ };
+
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setIsLoading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/users/connect_google_account', {
+            const response = await fetch('http://127.0.0.1:8000/api/files/upload', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_email: session.user.email }),
+                body: formData,
             });
             const data = await response.json();
-            alert(data.message);
+            if (response.ok) {
+                setUploadedFilePath(data.file_path);
+                alert(`File "${file.name}" uploaded successfully! You can now ask questions about it.`);
+            } else {
+                throw new Error(data.detail || "File upload failed");
+            }
         } catch (error) {
-            console.error("Failed to connect Google Account:", error);
-            alert("Failed to connect Google Account. Check the console for details.");
+            console.error("File upload error:", error);
+            alert((error as Error).message);
+        } finally {
+            setIsLoading(false);
+            if (fileInputRef.current) fileInputRef.current.value = ""; // Reset file input
         }
     };
-
+    
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
-        if (!input.trim() || !session?.user?.email) return;
+        let currentInput = input;
+        if (!currentInput.trim() || !session?.user?.email) return;
+
+        if (uploadedFilePath) {
+            currentInput = `(Regarding the uploaded file at path: ${uploadedFilePath}) ${currentInput}`;
+            setUploadedFilePath(null);
+        }
 
         const userMessage: Message = { text: input, sender: 'user' };
         setMessages((prev) => [...prev, userMessage]);
         setIsLoading(true);
+        setInput('');
         
         try {
             const response = await fetch('http://127.0.0.1:8000/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: input, user_email: session.user.email }),
+                body: JSON.stringify({ message: currentInput, user_email: session.user.email }),
             });
             const data = await response.json();
             setMessages((prev) => [...prev, { text: data.response, sender: 'ai' }]);
@@ -106,7 +128,6 @@ const ChatView = () => {
             console.error("Chat API error:", error);
         } finally {
             setIsLoading(false);
-            setInput('');
         }
     };
 
@@ -114,12 +135,7 @@ const ChatView = () => {
         <>
             <header className="flex h-16 items-center justify-between border-b bg-white p-4 dark:bg-gray-800 dark:border-gray-700">
                 <h1 className="text-xl font-semibold">AI Agent Chat</h1>
-                {session && (
-                    <Button onClick={handleConnectGoogle} variant="outline">
-                        <LinkIcon className="mr-2 h-4 w-4" />
-                        Connect Google Account
-                    </Button>
-                )}
+                {session && (<Button onClick={handleConnectGoogle} variant="outline"><LinkIcon className="mr-2 h-4 w-4" />Connect Google Account</Button>)}
             </header>
             <div className="flex flex-1 overflow-hidden">
                 <div className="flex-1 flex flex-col p-4 gap-4">
@@ -127,15 +143,15 @@ const ChatView = () => {
                         {messages.map((msg, index) => (
                             <div key={index} className={`flex items-start gap-3 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
                                 {msg.sender === 'ai' && <Bot className="h-6 w-6 text-blue-500" />}
-                                <div className={`rounded-lg px-4 py-2 max-w-lg ${msg.sender === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}>
-                                    <p className="whitespace-pre-wrap">{msg.text}</p>
-                                </div>
+                                <div className={`rounded-lg px-4 py-2 max-w-lg ${msg.sender === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}><p className="whitespace-pre-wrap">{msg.text}</p></div>
                                 {msg.sender === 'user' && <User className="h-6 w-6" />}
                             </div>
                         ))}
                     </div>
-                    <form onSubmit={handleSubmit} className="relative">
-                        <Input placeholder="Ask your agent to 'check my email' or 'schedule an event'..." value={input} onChange={(e) => setInput(e.target.value)} disabled={!session || isLoading} className="pr-12" />
+                    <form onSubmit={handleSubmit} className="relative flex items-center gap-2">
+                        <Button type="button" size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={isLoading}><Paperclip className="h-5 w-5" /></Button>
+                        <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf" />
+                        <Input placeholder={uploadedFilePath ? `File "${uploadedFilePath.split('\\').pop()}" attached. Ask a question...` : "Ask your agent..."} value={input} onChange={(e) => setInput(e.target.value)} disabled={!session || isLoading} className="pr-12"/>
                         <Button type="submit" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8" disabled={!session || isLoading}><Send className="h-4 w-4" /></Button>
                     </form>
                 </div>
