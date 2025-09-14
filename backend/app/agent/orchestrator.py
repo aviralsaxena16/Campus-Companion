@@ -90,17 +90,15 @@ prompt = ChatPromptTemplate.from_messages([
      "\n3.  **CREATE EVENT:** If the parser returns a valid event, immediately call the `Calendar` tool with the details."
      "\n"
      "**Workflow #3: Competitive Programming Contests**"
-     "\n1.  If the user asks about 'contests', 'leetcode', or 'codeforces', you MUST use the `contest_scanner_tool`."
-     "\n2.  If they mention a specific site (e.g., 'Codeforces contests'), you MUST pass that `site_name` to the tool (e.g., `site_name='codeforces'`). Otherwise, do not pass a `site_name` to scan all sites."
-     "\n3.  The tool will return a clean JSON list of all upcoming contests."
-     "\n4.  If the user only asked to see the contests, format the list into a readable summary for them."
-     "\n5.  If the user also asked to schedule the contests, you MUST call the `Calendar` tool for **EACH** event in the list returned by the scanner."
+     "\n1.  If the user asks about 'contests', 'leetcode', or 'codeforces', you MUST use the `contest_scanner_tool`. This tool returns a clean JSON list of all upcoming contests, ready for scheduling."
+     "\n2.  If the user asks to schedule the contests, you MUST then call the `Calendar` tool for **EACH** event in the list returned by the scanner. You must loop through every contest and schedule all of them."
      "\n\n"
-     "**CRITICAL RULE:** Do not explain your plan. Execute the necessary workflow and respond only with the final result or confirmation."
+     "**CRITICAL RULE:** Do not explain your plan. Execute the necessary workflow from start to finish. If the user asks you to schedule events, your final response MUST be a confirmation that the events have been added to the calendar."
     ),
     ("user", "{input}"),
     MessagesPlaceholder(variable_name="agent_scratchpad"),
 ])
+
 
 agent = create_openai_tools_agent(llm, tools, prompt)
 
