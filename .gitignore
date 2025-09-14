@@ -1,0 +1,14 @@
+# Ignore env files
+.env
+backend/.env
+frontend/.env
+
+# Ignore venv
+venv/
+
+# Ignore sensitive tokens
+token.json
+credentials.json
+backend/token.json
+backend/credentials.json
+backend/venv
