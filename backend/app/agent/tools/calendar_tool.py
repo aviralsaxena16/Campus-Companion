@@ -1,4 +1,3 @@
-# In backend/app/agent/tools/calendar_tool.py
 from typing import Type
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -17,20 +16,91 @@ class EventInput(BaseModel):
 
 class CreateCalendarEventTool(BaseTool):
     name: str = "create_calendar_event"
-    description: str = "Creates a new event in a specific user's Google Calendar."
+    description: str = "Creates a new event in a specific user's Google Calendar with the provided event details."
     args_schema: Type[EventInput] = EventInput
 
-    def _run(self, title: str, start_time: str, end_time: str, location: str, description: str, user_email: str):
+    async def _arun(self, title: str, start_time: str, end_time: str, location: str, description: str, user_email: str):
+        """Async version of the calendar event creation"""
         try:
+            print(f"[DEBUG] Creating calendar event: {title} for {user_email}")  # Added debug logging
+            
             credentials = get_user_credentials(user_email)
             service = build("calendar", "v3", credentials=credentials)
             
+            if not start_time.endswith('Z') and '+' not in start_time and 'T' in start_time:
+                start_time = start_time + '+05:30'  # Add IST timezone
+            if not end_time.endswith('Z') and '+' not in end_time and 'T' in end_time:
+                end_time = end_time + '+05:30'  # Add IST timezone
+            
             event = {
-                'summary': title, 'location': location, 'description': description,
-                'start': {'dateTime': start_time, 'timeZone': 'Asia/Kolkata'},
-                'end': {'dateTime': end_time, 'timeZone': 'Asia/Kolkata'},
+                'summary': title,
+                'location': location,
+                'description': description,
+                'start': {
+                    'dateTime': start_time,
+                    'timeZone': 'Asia/Kolkata'
+                },
+                'end': {
+                    'dateTime': end_time,
+                    'timeZone': 'Asia/Kolkata'
+                },
             }
+            
+            print(f"[DEBUG] Event object: {event}")  # Added debug logging
+            
             created_event = service.events().insert(calendarId='primary', body=event).execute()
-            return f"Event created successfully for {user_email}! View it here: {created_event.get('htmlLink')}"
+            
+            success_message = f"✅ SUCCESS: Event '{title}' has been created in your Google Calendar for {start_time}! You can view it at: {created_event.get('htmlLink', 'your calendar')}"
+            print(f"[DEBUG] {success_message}")  # Added debug logging
+            return success_message
+            
+        except HttpError as error:
+            error_message = f"❌ Google Calendar API error: {error}"
+            print(f"[DEBUG] {error_message}")  # Added debug logging
+            return error_message
         except Exception as e:
-            return f"An error occurred while creating the calendar event: {e}"
+            error_message = f"❌ An error occurred while creating the calendar event: {str(e)}"
+            print(f"[DEBUG] {error_message}")  # Added debug logging
+            return error_message
+
+    def _run(self, title: str, start_time: str, end_time: str, location: str, description: str, user_email: str):
+        """Synchronous version - should not be used in async context"""
+        try:
+            print(f"[DEBUG] Creating calendar event (sync): {title} for {user_email}")  # Added debug logging
+            
+            credentials = get_user_credentials(user_email)
+            service = build("calendar", "v3", credentials=credentials)
+            
+            if not start_time.endswith('Z') and '+' not in start_time and 'T' in start_time:
+                start_time = start_time + '+05:30'  # Add IST timezone
+            if not end_time.endswith('Z') and '+' not in end_time and 'T' in end_time:
+                end_time = end_time + '+05:30'  # Add IST timezone
+            
+            event = {
+                'summary': title,
+                'location': location,
+                'description': description,
+                'start': {
+                    'dateTime': start_time,
+                    'timeZone': 'Asia/Kolkata'
+                },
+                'end': {
+                    'dateTime': end_time,
+                    'timeZone': 'Asia/Kolkata'
+                },
+            }
+            
+            created_event = service.events().insert(calendarId='primary', body=event).execute()
+            
+            success_message = f"✅ SUCCESS: Event '{title}' has been created in your Google Calendar for {start_time}! You can view it at: {created_event.get('htmlLink', 'your calendar')}"
+            print(f"[DEBUG] {success_message}")  # Added debug logging
+            return success_message
+            
+        except HttpError as error:
+            error_message = f"❌ Google Calendar API error: {error}"
+            print(f"[DEBUG] {error_message}")  # Added debug logging
+            return error_message
+        except Exception as e:
+            error_message = f"❌ An error occurred while creating the calendar event: {str(e)}"
+            print(f"[DEBUG] {error_message}")  # Added debug logging
+            return error_message

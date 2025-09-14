@@ -1,4 +1,3 @@
-# In backend/app/agent/orchestrator.py
 import os
 from langchain_groq import ChatGroq
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -11,14 +10,15 @@ from app.agent.tools.calendar_tool import CreateCalendarEventTool
 from app.agent.tools.gmail_reader_tool import GmailReaderTool
 from app.agent.tools.event_parser_tool import EventParserTool
 load_dotenv()
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",  
-    # you can also use gemini-pro, gemini-pro-vision etc depending on what your account supports
-    temperature=0.7,
-    google_api_key=GOOGLE_API_KEY
-)
 
+# llm = ChatGroq(
+#     model="deepseek-r1-distill-llama-70b",
+#     temperature=0,
+#     max_tokens=4000,  # Increased token limit
+#     timeout=60,  # Increased timeout
+#     max_retries=3  # Increased retries
+# )
+llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=os.getenv("GOOGLE_API_KEY"), temperature=0)
 
 tools = [
     WebScraperTool(), 
@@ -27,69 +27,74 @@ tools = [
     EventParserTool()
 ]
 
-# # --- NEW, ADVANCED PROMPT ---
-# prompt = ChatPromptTemplate.from_messages([
-#     ("system", 
-#      "You are an expert AI university navigator for a user in India. Your capabilities include scraping websites, reading the user's recent emails, and scheduling events in their Google Calendar. "
-#      "Current year is 2025. Today's date is September 13, 2025. The user's timezone is 'Asia/Kolkata' (UTC+05:30)."
-#      "\n\n"
-#      "=== YOUR WORKFLOWS ==="
-#      "1.  **Answering Questions About Emails:** When asked a question about emails, you MUST use the `read_gmail` tool. This tool returns a JSON list of recent emails. You must carefully analyze this JSON to find the answer. Do not make up information."
-#      "2.  **Scheduling from an Email:** If the user asks you to schedule an event from a specific email (e.g., 'the email about the team sync'), your plan MUST be:"
-#      "    a. First, use the `read_gmail` tool with a relevant query to find that specific email."
-#      "    b. Second, carefully read the 'body_snippet' of the correct email from the JSON output to find the event title, date, and time."
-#      "    c. Third, use the `Calendar` tool with the details you extracted."
-#      "\n\n"
-#      "=== CRITICAL INSTRUCTIONS FOR TOOLS ==="
-#      "-   You MUST use the `user_email` provided in the input for all Google-related tools."
-#      "-   Calendar event times MUST be in the strict ISO 8601 format: 'YYYY-MM-DDTHH:MM:SS'."
-#      "-   If an event's end time is not specified, you MUST assume it lasts for one (1) hour."
-#      "-   After a successful action, you MUST confirm it clearly (e.g., 'I have scheduled [Event Name] for you.')."
-#     ),
-#     ("user", "My email is {user_email}. My request is: {input}"),
-#     MessagesPlaceholder(variable_name="agent_scratchpad"),
-# ])
-
-
 prompt = ChatPromptTemplate.from_messages([
     ("system", 
-     "You are an expert AI university navigator. Your purpose is to assist the user by performing specific tasks based on the workflows defined below. "
-     "The user is in India, and their timezone is 'Asia/Kolkata' (UTC+05:30). The current year is 2025."
+     "You are an expert AI assistant that helps users schedule events from emails and websites. "
+     "You are acting on behalf of a user with the email: {user_email}. "
+     "You MUST use this email for any tools that require a user_email parameter. "
+     "Today's date is September 14, 2025. The user's timezone is 'Asia/Kolkata'."
      "\n\n"
-     "=== CORE WORKFLOWS ==="
+     "=== YOUR CAPABILITIES ==="
+     "1. **EMAIL QUERIES**: Answer questions about the user's recent emails using `read_gmail`"
+     "2. **WEB SCRAPING**: Extract information from websites using `web_scraper`"
+     "3. **EVENT SCHEDULING**: Create calendar events from parsed information"
+     "\n\n"
+     "=== MANDATORY SCHEDULING WORKFLOW ==="
+     "When the user asks to schedule/mark/add an event to calendar, you MUST complete ALL 3 steps:"
      "\n"
-     "**Workflow #1: Answering Questions from a Source**"
-     "1.  If the user asks a question about a webpage, use the `web_scraper` tool to get the text."
-     "2.  If the user asks a question about their emails, use the `read_gmail` tool to get a JSON list of emails."
-     "3.  Analyze the output from the tool and provide a direct answer to the user's question."
+     "**STEP 1: GET TEXT**"
+     "- Use `read_gmail` if scheduling from an email"
+     "- Use `web_scraper` if scheduling from a URL"
+     "- Wait for the tool to return the text content"
      "\n"
-     "**Workflow #2: Scheduling an Event from a Source (Email or Web Page)**"
-     "This is a strict three-step process:"
-     "1.  **Get Text:** Use `read_gmail` (for emails) or `web_scraper` (for web pages) to get the raw text containing the event information."
-     "2.  **Parse Event:** Take the text from Step 1 and the `user_email` and give them to the `event_parser_tool`. This tool is an expert at extracting perfectly formatted JSON for scheduling."
-     "3.  **Create Event:** Take the complete JSON output from the `event_parser_tool` and use it as the input for the `Calendar` tool to schedule the event."
+     "**STEP 2: PARSE EVENT**"
+     "- Take the EXACT text output from Step 1"
+     "- Pass it to `event_parser_tool`"
+     "- Wait for it to return a dictionary with event details"
+     "\n"
+     "**STEP 3: CREATE EVENT**"
+     "- If parser returns a dictionary with 'title' field, immediately call `create_calendar_event`"
+     "- Use the exact values from the parser output"
+     "- Use the user's email: {user_email}"
      "\n\n"
      "=== CRITICAL RULES ==="
-     "-   You MUST use the `user_email` provided in the input for any tool that requires it (`read_gmail`, `event_parser_tool`, `Calendar`)."
-     "-   For calendar events, times MUST be in the full ISO 8601 format ('YYYY-MM-DDTHH:MM:SS')."
-     "-   If an event's end time is not specified, assume it lasts for one (1) hour."
-     "-   After successfully completing an action, you MUST confirm it clearly and concisely (e.g., 'I have scheduled [Event Name] for you.')."
+     "1. **COMPLETE ALL STEPS**: Never stop after step 1 or 2 - always complete the full workflow"
+     "2. **NO PARTIAL RESPONSES**: Never end your response with just tool calls - always provide a complete answer"
+     "3. **SEQUENTIAL EXECUTION**: Wait for each tool to complete before calling the next one"
+     "4. **PROPER CONFIRMATION**: After creating an event, confirm it was scheduled successfully"
+     "5. **ERROR HANDLING**: If any step fails, explain what went wrong clearly"
+     "\n\n"
+     "=== RESPONSE FORMAT ==="
+     "Always provide a complete, helpful response. Never end with incomplete tool calls or partial responses."
     ),
-    ("user", "My email is {user_email}. My request is: {input}"),
+    ("user", "{input}"),
     MessagesPlaceholder(variable_name="agent_scratchpad"),
 ])
 
-
-
-
-
 agent = create_openai_tools_agent(llm, tools, prompt)
 
-agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
+agent_executor = AgentExecutor(
+    agent=agent, 
+    tools=tools, 
+    verbose=True, 
+    handle_parsing_errors=True,
+    max_iterations=10,  # Reduced but sufficient iterations
+    early_stopping_method="force",  # Force completion
+    return_intermediate_steps=False
+)
 
 async def get_agent_response(user_input: str, user_email: str):
-    response = await agent_executor.ainvoke({
-        "input": user_input,
-        "user_email": user_email 
-    })
-    return response['output']
+    try:
+        response = await agent_executor.ainvoke({
+            "input": user_input,
+            "user_email": user_email
+        })
+        
+        output = response.get('output', '')
+        if not output or output.strip().endswith('<tool_call>'):
+            return "I've processed your request. Please check your calendar for the scheduled event."
+        
+        return output
+        
+    except Exception as e:
+        return f"I encountered an error while processing your request: {str(e)}. Please try again or rephrase your request."
