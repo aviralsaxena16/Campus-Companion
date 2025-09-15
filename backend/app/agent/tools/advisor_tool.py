@@ -34,15 +34,19 @@ class AdvisorTool(BaseTool):
         return response_text
 
     async def _arun(self, goal: str):
-        # <CHANGE> Updated prompt to be more explicit about JSON-only output
         parser_prompt = ChatPromptTemplate.from_template(
             "You are a world-class strategic advisor. Create a detailed roadmap for the user's goal.\n"
-            "CRITICAL: Return ONLY a valid JSON object. No markdown, no explanations, no code fences, no extra text.\n"
-            "Structure: {\"goal\": \"[goal title]\", \"steps\": [{\"title\": \"step name\", \"tasks\": [\"task1\", \"task2\"]}]}\n"
-            "Each step should have 3-5 specific, actionable tasks.\n"
-            "Make the goal title clear and specific.\n\n"
+            "CRITICAL: Return ONLY a valid JSON object with this EXACT structure:\n"
+            "{\"goal\": \"[clear goal title]\", \"steps\": [{\"title\": \"Step Name\", \"tasks\": [\"specific task 1\", \"specific task 2\", \"specific task 3\"]}]}\n\n"
+            "REQUIREMENTS:\n"
+            "- Use 'goal' and 'steps' as top-level keys (not 'title' and 'stages')\n"
+            "- Each step must have 'title' and 'tasks' keys\n"
+            "- Include 3-5 specific, actionable tasks per step\n"
+            "- Make tasks concrete and measurable\n"
+            "- No markdown, no code fences, no explanations\n"
+            "- Return ONLY the JSON object\n\n"
             "USER'S GOAL: {goal}\n\n"
-            "Return only the JSON object:"
+            "JSON Response:"
         )
         chain = parser_prompt | llm
 
@@ -56,27 +60,98 @@ class AdvisorTool(BaseTool):
             # Validate JSON by parsing it
             parsed_json = json.loads(cleaned_json)
             
-            # Ensure required structure exists
-            if "goal" not in parsed_json or "steps" not in parsed_json:
-                raise ValueError("Missing required keys in response")
+            if "goal" not in parsed_json:
+                # Try to convert from other formats
+                if "title" in parsed_json:
+                    parsed_json["goal"] = parsed_json.pop("title")
+                else:
+                    parsed_json["goal"] = goal
             
-            # <CHANGE> Return the parsed JSON object directly, not as a string
-            return parsed_json
+            if "steps" not in parsed_json:
+                if "stages" in parsed_json:
+                    # Convert stages to steps format
+                    stages = parsed_json.pop("stages")
+                    steps = []
+                    for i, stage in enumerate(stages):
+                        step = {
+                            "title": stage.get("name", stage.get("title", f"Step {i+1}")),
+                            "tasks": []
+                        }
+                        
+                        # Collect tasks from various possible fields
+                        if "topics" in stage:
+                            step["tasks"].extend(stage["topics"])
+                        if "tasks" in stage:
+                            step["tasks"].extend(stage["tasks"])
+                        if "content" in stage:
+                            step["tasks"].extend(stage["content"])
+                        
+                        # Add duration if available
+                        if "duration" in stage:
+                            step["tasks"].insert(0, f"Duration: {stage['duration']}")
+                        
+                        # Ensure we have at least one task
+                        if not step["tasks"]:
+                            step["tasks"] = [f"Complete {step['title']}"]
+                        
+                        steps.append(step)
+                    
+                    parsed_json["steps"] = steps
+                else:
+                    # Fallback structure
+                    parsed_json["steps"] = [
+                        {
+                            "title": "Getting Started",
+                            "tasks": [f"Begin working on: {goal}"]
+                        }
+                    ]
+            
+            if not isinstance(parsed_json["steps"], list):
+                parsed_json["steps"] = []
+            
+            for step in parsed_json["steps"]:
+                if not isinstance(step.get("tasks"), list):
+                    step["tasks"] = []
+                # Ensure all tasks are strings
+                step["tasks"] = [str(task) for task in step["tasks"] if task]
+                if not step["tasks"]:
+                    step["tasks"] = [f"Complete {step.get('title', 'this step')}"]
+            
+            return json.dumps(parsed_json, ensure_ascii=False, indent=2)
             
         except json.JSONDecodeError as e:
-            # <CHANGE> Return object instead of JSON string for consistency
-            return {
-                "error": "Invalid JSON response",
+            error_response = {
                 "goal": goal,
-                "steps": [{"title": "Error", "tasks": ["Failed to generate roadmap. Please try again."]}]
+                "steps": [
+                    {
+                        "title": "JSON Parsing Error", 
+                        "tasks": [
+                            "The AI response couldn't be parsed as valid JSON.",
+                            "Please try rephrasing your request.",
+                            f"Error details: {str(e)}"
+                        ]
+                    }
+                ],
+                "error": "Invalid JSON response"
             }
+            return json.dumps(error_response, ensure_ascii=False, indent=2)
+            
         except Exception as e:
-            # <CHANGE> Return object instead of JSON string for consistency
-            return {
-                "error": f"Generation failed: {str(e)}",
+            error_response = {
                 "goal": goal,
-                "steps": [{"title": "Error", "tasks": ["Unable to create roadmap. Please try again."]}]
+                "steps": [
+                    {
+                        "title": "Generation Error", 
+                        "tasks": [
+                            "Failed to generate roadmap due to an unexpected error.",
+                            "Please try again with a different request.",
+                            f"Error: {str(e)}"
+                        ]
+                    }
+                ],
+                "error": f"Generation failed: {str(e)}"
             }
+            return json.dumps(error_response, ensure_ascii=False, indent=2)
 
     def _run(self, goal: str):
         raise NotImplementedError("This tool is async only.")

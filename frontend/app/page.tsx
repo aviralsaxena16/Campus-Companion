@@ -4,15 +4,33 @@ import type React from "react"
 
 import { useState, type FormEvent, useEffect, useRef } from "react"
 import { useSession } from "next-auth/react"
+import {
+  Send,
+  Bot,
+  User,
+  LinkIcon,
+  Mail,
+  MessageSquare,
+  Paperclip,
+  Loader2,
+  Zap,
+  CheckCircle2,
+  Download,
+  Edit,
+  Save,
+  XCircle,
+} from "lucide-react"
 import { createParser, type EventSourceMessage } from "eventsource-parser"
 import { formatDistanceToNow } from "date-fns"
+import jsPDF from "jspdf"
+import html2canvas from "html2canvas"
 
 import AuthButtons from "@/components/AuthButtons"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Send, Bot, User, LinkIcon, Mail, MessageSquare, Paperclip, Loader2, Zap, CheckCircle2 } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea" // Using Textarea for better editing
 
 // --- Type Definitions ---
 interface Message {
@@ -35,19 +53,18 @@ interface RoadmapStep {
   title: string
   tasks: string[]
 }
-
 interface Roadmap {
   goal: string
   steps: RoadmapStep[]
   error?: string
 }
 
+// --- Main Dashboard Component ---
 export default function Dashboard() {
   const [currentView, setCurrentView] = useState<View>("chat")
-
   return (
-    <div className="flex h-screen bg-background">
-      <aside className="w-64 border-r bg-card p-4">
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+      <aside className="w-64 flex-col border-r bg-white p-4 dark:bg-gray-800 dark:border-gray-700 hidden md:flex">
         <h2 className="text-2xl font-bold">Navigator</h2>
         <Separator className="my-4" />
         <nav className="flex flex-col space-y-2">
@@ -81,9 +98,7 @@ export default function Dashboard() {
         </div>
       </aside>
       <main className="flex flex-1 flex-col">
-        {currentView === "chat" && <ChatView />}
-        {currentView === "updates" && <UpdatesView />}
-        {currentView === "advisor" && <AdvisorView />}
+        {currentView === "chat" ? <ChatView /> : currentView === "updates" ? <UpdatesView /> : <AdvisorView />}
       </main>
     </div>
   )
@@ -417,35 +432,80 @@ const AdvisorView = () => {
   const [goal, setGoal] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedRoadmap, setEditedRoadmap] = useState<Roadmap | null>(null)
+  const roadmapRef = useRef<HTMLDivElement>(null) // Ref for PDF download
+  const [isDownloading, setIsDownloading] = useState(false)
 
   const parseRoadmapResponse = (response: string): Roadmap | null => {
     try {
-      console.log("[v0] Raw response:", response) // Added debug logging
+      console.log("[v0] Raw response:", response)
       let parsedData
+
       try {
         parsedData = JSON.parse(response)
       } catch {
-        // Remove markdown code fences and clean the response
-        const cleanedResponse = response.replace(/```json\s*/g, "").replace(/```\s*$/g, "")
-
-        // Find JSON object using regex
+        const cleanedResponse = response
+          .replace(/```json\s*/g, "")
+          .replace(/```\s*$/g, "")
+          .trim()
         const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/)
         if (!jsonMatch) {
           throw new Error("No JSON object found in response")
         }
-
         parsedData = JSON.parse(jsonMatch[0])
       }
 
-      console.log("[v0] Parsed data:", parsedData) // Added debug logging
+      console.log("[v0] Parsed data:", parsedData)
 
       let roadmapData: Roadmap
 
-      if (parsedData.title && parsedData.timeline) {
-        // Transform the timeline structure to our expected format
+      if (parsedData.title && parsedData.stages) {
+        const steps: RoadmapStep[] = parsedData.stages.map((stage: any, index: number) => {
+          const tasks: string[] = []
+
+          // Add topics/tasks
+          if (Array.isArray(stage.topics)) {
+            tasks.push(...stage.topics)
+          } else if (Array.isArray(stage.tasks)) {
+            tasks.push(...stage.tasks)
+          } else if (Array.isArray(stage.content)) {
+            tasks.push(...stage.content)
+          }
+
+          // Add duration if available
+          if (stage.duration) {
+            tasks.unshift(`Duration: ${stage.duration}`)
+          }
+
+          // Add resources as tasks if available
+          if (Array.isArray(stage.resources) && stage.resources.length > 0) {
+            tasks.push("Resources:")
+            tasks.push(...stage.resources.map((resource: string) => `• ${resource}`))
+          }
+
+          return {
+            title: stage.name || stage.title || `Stage ${index + 1}`,
+            tasks: tasks.length > 0 ? tasks : [`Complete ${stage.name || `Stage ${index + 1}`}`],
+          }
+        })
+
+        // Add additional tips as a final step if available
+        if (Array.isArray(parsedData.additional_tips) && parsedData.additional_tips.length > 0) {
+          steps.push({
+            title: "Additional Tips",
+            tasks: parsedData.additional_tips,
+          })
+        }
+
+        roadmapData = {
+          goal: parsedData.title,
+          steps: steps,
+        }
+      } else if (parsedData.title && parsedData.timeline) {
         const steps: RoadmapStep[] = Object.values(parsedData.timeline).map((phase: any) => ({
-          title: phase.name,
-          tasks: phase.tasks,
+          title: phase.name || phase.title,
+          tasks: phase.tasks || phase.topics || [],
         }))
 
         roadmapData = {
@@ -453,28 +513,77 @@ const AdvisorView = () => {
           steps: steps,
         }
       } else if (parsedData.goal && parsedData.steps) {
-        // Handle the expected format if it comes in that way
         roadmapData = parsedData as Roadmap
       } else {
-        throw new Error("Invalid roadmap structure - missing required fields")
+        const goal = parsedData.title || parsedData.goal || parsedData.name || "Learning Plan"
+        const steps: RoadmapStep[] = []
+
+        const stepsData = parsedData.steps || parsedData.stages || parsedData.phases || parsedData.timeline
+
+        if (Array.isArray(stepsData)) {
+          stepsData.forEach((item: any, index: number) => {
+            const tasks: string[] = []
+
+            if (Array.isArray(item.tasks)) {
+              tasks.push(...item.tasks)
+            } else if (Array.isArray(item.topics)) {
+              tasks.push(...item.topics)
+            } else if (Array.isArray(item.content)) {
+              tasks.push(...item.content)
+            } else if (item.description) {
+              tasks.push(item.description)
+            }
+
+            steps.push({
+              title: item.title || item.name || `Step ${index + 1}`,
+              tasks: tasks.length > 0 ? tasks : [`Complete ${item.title || item.name || `Step ${index + 1}`}`],
+            })
+          })
+        } else if (typeof stepsData === "object") {
+          Object.values(stepsData).forEach((item: any, index: number) => {
+            const tasks: string[] = []
+
+            if (Array.isArray(item.tasks)) {
+              tasks.push(...item.tasks)
+            } else if (Array.isArray(item.topics)) {
+              tasks.push(...item.topics)
+            } else if (Array.isArray(item.content)) {
+              tasks.push(...item.content)
+            } else if (item.description) {
+              tasks.push(item.description)
+            }
+
+            steps.push({
+              title: item.title || item.name || `Step ${index + 1}`,
+              tasks: tasks.length > 0 ? tasks : [`Complete ${item.title || item.name || `Step ${index + 1}`}`],
+            })
+          })
+        }
+
+        if (steps.length === 0) {
+          throw new Error("No valid steps found in response")
+        }
+
+        roadmapData = { goal, steps }
       }
 
-      // Validate the final structure
-      if (!roadmapData.goal || !roadmapData.steps || !Array.isArray(roadmapData.steps)) {
-        throw new Error("Invalid roadmap structure after transformation")
-      }
+      // Ensure all tasks are strings and not objects
+      roadmapData.steps = roadmapData.steps.map((step) => ({
+        ...step,
+        tasks: Array.isArray(step.tasks) ? step.tasks.filter((task) => typeof task === "string") : [],
+      }))
 
-      console.log("[v0] Final roadmap data:", roadmapData) // Added debug logging
+      console.log("[v0] Final roadmap data:", roadmapData)
       return roadmapData
     } catch (error) {
       console.error("Error parsing roadmap response:", error)
-      console.error("Raw response:", response) // Added debug logging
+      console.error("Raw response:", response)
       return {
-        goal: goal,
+        goal: goal || "Learning Plan",
         steps: [
           {
             title: "Parsing Error",
-            tasks: ["Sorry, I couldn't parse the roadmap. Please try again."],
+            tasks: ["Sorry, I couldn't parse the roadmap. Please try again with a different request."],
           },
         ],
         error: "Failed to parse response",
@@ -485,65 +594,165 @@ const AdvisorView = () => {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!goal.trim() || !session?.user?.email) return
-
     setIsLoading(true)
     setRoadmap(null)
-
+    setEditedRoadmap(null)
+    setIsEditing(false)
     try {
       const response = await fetch("http://127.0.0.1:8000/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: `Create a roadmap for: ${goal}`,
-          user_email: session.user.email,
-        }),
+        body: JSON.stringify({ message: `Create a roadmap for: ${goal}`, user_email: session.user.email }),
       })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
       const data = await response.json()
       const parsedRoadmap = parseRoadmapResponse(data.response)
-
-      if (parsedRoadmap) {
-        setRoadmap(parsedRoadmap)
-      } else {
-        throw new Error("Failed to parse roadmap response")
-      }
+      setRoadmap(parsedRoadmap)
+      setEditedRoadmap(JSON.parse(JSON.stringify(parsedRoadmap)))
     } catch (error) {
       console.error("Advisor API error:", error)
       setRoadmap({
-        goal: goal,
-        steps: [
-          {
-            title: "Connection Error",
-            tasks: [
-              "Sorry, I couldn't generate a roadmap right now.",
-              "Please check your connection and try again.",
-              "If the problem persists, contact support.",
-            ],
-          },
-        ],
-        error: error instanceof Error ? error.message : "Unknown error",
+        goal,
+        steps: [{ title: "Connection Error", tasks: ["Sorry, I couldn't generate a roadmap right now."] }],
+        error: (error as Error).message,
       })
     } finally {
       setIsLoading(false)
     }
   }
 
+  const handleEditChange = (phaseIndex: number, taskIndex: number, value: string) => {
+    if (!editedRoadmap) return
+    const newRoadmap = { ...editedRoadmap }
+    newRoadmap.steps[phaseIndex].tasks[taskIndex] = value
+    setEditedRoadmap(newRoadmap)
+  }
+
+  const handlePhaseTitleChange = (phaseIndex: number, value: string) => {
+    if (!editedRoadmap) return
+    const newRoadmap = { ...editedRoadmap }
+    newRoadmap.steps[phaseIndex].title = value
+    setEditedRoadmap(newRoadmap)
+  }
+
+  const handleSaveChanges = () => {
+    setRoadmap(editedRoadmap)
+    setIsEditing(false)
+  }
+
+  const handleDownloadPdf = async () => {
+    if (!roadmapRef.current) return
+    setIsDownloading(true)
+
+    try {
+      const canvas = await html2canvas(roadmapRef.current, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        ignoreElements: (element) => {
+          // Skip elements that might cause color issues
+          return element.classList.contains("ignore-pdf")
+        },
+      })
+
+      const imgData = canvas.toDataURL("image/png")
+      const pdf = new jsPDF("p", "mm", "a4")
+      const pdfWidth = pdf.internal.pageSize.getWidth()
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+
+      if (pdfHeight > pdf.internal.pageSize.getHeight()) {
+        const pageHeight = pdf.internal.pageSize.getHeight()
+        let heightLeft = pdfHeight
+        let position = 0
+
+        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight)
+        heightLeft -= pageHeight
+
+        while (heightLeft >= 0) {
+          position = heightLeft - pdfHeight
+          pdf.addPage()
+          pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight)
+          heightLeft -= pageHeight
+        }
+      } else {
+        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight)
+      }
+
+      pdf.save(`${roadmap?.goal.replace(/\s+/g, "_") || "roadmap"}.pdf`)
+    } catch (error) {
+      console.error("PDF generation failed:", error)
+      alert("Failed to generate PDF. Please try again.")
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
+  const handleAddTask = (stepIndex: number) => {
+    if (!editedRoadmap) return
+    const newRoadmap = { ...editedRoadmap }
+    newRoadmap.steps[stepIndex].tasks.push("New task")
+    setEditedRoadmap(newRoadmap)
+  }
+
+  const handleRemoveTask = (stepIndex: number, taskIndex: number) => {
+    if (!editedRoadmap) return
+    const newRoadmap = { ...editedRoadmap }
+    newRoadmap.steps[stepIndex].tasks.splice(taskIndex, 1)
+    setEditedRoadmap(newRoadmap)
+  }
+
+  const handleAddStep = () => {
+    if (!editedRoadmap) return
+    const newRoadmap = { ...editedRoadmap }
+    newRoadmap.steps.push({
+      title: "New Step",
+      tasks: ["New task"],
+    })
+    setEditedRoadmap(newRoadmap)
+  }
+
   return (
     <div className="flex flex-col h-full">
-      <header className="flex h-16 shrink-0 items-center border-b bg-background p-4">
+      <header className="flex h-16 shrink-0 items-center border-b bg-background p-4 justify-between">
         <h1 className="text-xl font-semibold">Advisor Agent</h1>
+        {roadmap && !roadmap.error && (
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleDownloadPdf} disabled={isDownloading}>
+              <Download className="mr-2 h-4 w-4" />
+              {isDownloading ? "Downloading..." : "Download PDF"}
+            </Button>
+            {isEditing ? (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsEditing(false)
+                    setEditedRoadmap(roadmap)
+                  }}
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveChanges}>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Changes
+                </Button>
+              </div>
+            ) : (
+              <Button onClick={() => setIsEditing(true)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Plan
+              </Button>
+            )}
+          </div>
+        )}
       </header>
-
       <div className="flex-1 overflow-y-auto p-4 md:p-8">
         <div className="w-full max-w-4xl mx-auto">
           <p className="text-muted-foreground mb-6">
             Ask for a plan to achieve a goal, and the agent will generate a step-by-step roadmap for you.
           </p>
-
           <form onSubmit={handleSubmit} className="flex items-center gap-2 mb-8">
             <Input
               placeholder="e.g., 'learn React for web development'"
@@ -564,54 +773,97 @@ const AdvisorView = () => {
             </Button>
           </form>
 
-          {roadmap && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                  {roadmap.goal}
-                </h2>
-                {roadmap.error && <p className="text-sm text-destructive mb-4">Note: {roadmap.error}</p>}
-                <p className="text-muted-foreground">Your personalized roadmap with {roadmap.steps.length} key steps</p>
-              </div>
-
-              <div className="grid gap-4">
-                {roadmap.steps.map((step, stepIndex) => (
-                  <Card key={stepIndex} className="relative overflow-hidden border-l-4 border-l-primary">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground text-sm font-bold shadow-md">
-                          {stepIndex + 1}
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold">{step.title}</h3>
-                          <p className="text-sm text-muted-foreground mt-1">{step.tasks.length} tasks to complete</p>
-                        </div>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="grid gap-3">
-                        {step.tasks.map((task, taskIndex) => (
-                          <div
-                            key={taskIndex}
-                            className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors"
-                          >
-                            <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span className="text-sm leading-relaxed">{task}</span>
+          <div
+            ref={roadmapRef}
+            className="p-6 bg-white rounded-lg shadow-sm"
+            style={{ backgroundColor: "#ffffff", color: "#1f2937" }}
+          >
+            {roadmap && (
+              <div className="space-y-6">
+                <div className="text-center">
+                  <h2 className="text-3xl font-bold" style={{ color: "#1f2937" }}>
+                    {isEditing ? (
+                      <Input
+                        value={editedRoadmap?.goal || ""}
+                        onChange={(e) => setEditedRoadmap((prev) => (prev ? { ...prev, goal: e.target.value } : null))}
+                        className="text-3xl font-bold text-center border-none shadow-none bg-transparent"
+                        style={{ color: "#1f2937" }}
+                      />
+                    ) : (
+                      roadmap.goal
+                    )}
+                  </h2>
+                </div>
+                <div className="grid gap-4">
+                  {(isEditing ? editedRoadmap : roadmap)?.steps.map((step, stepIndex) => (
+                    <Card
+                      key={stepIndex}
+                      className="border-2"
+                      style={{ backgroundColor: "#f9fafb", borderColor: "#e5e7eb" }}
+                    >
+                      <CardHeader>
+                        {isEditing ? (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              value={step.title}
+                              onChange={(e) => handlePhaseTitleChange(stepIndex, e.target.value)}
+                              className="text-lg font-semibold h-10"
+                              style={{ color: "#1f2937" }}
+                            />
+                            <Button variant="outline" size="sm" onClick={() => handleAddTask(stepIndex)}>
+                              Add Task
+                            </Button>
                           </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                        ) : (
+                          <CardTitle style={{ color: "#1f2937" }}>
+                            Step {stepIndex + 1}: {step.title}
+                          </CardTitle>
+                        )}
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid gap-3">
+                          {step.tasks.map((task, taskIndex) => (
+                            <div key={taskIndex} className="flex items-start gap-3">
+                              <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: "#059669" }} />
+                              {isEditing ? (
+                                <div className="flex-1 flex items-center gap-2">
+                                  <Textarea
+                                    value={task}
+                                    onChange={(e) => handleEditChange(stepIndex, taskIndex, e.target.value)}
+                                    className="text-sm leading-relaxed min-h-[60px]"
+                                    style={{ color: "#374151" }}
+                                  />
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleRemoveTask(stepIndex, taskIndex)}
+                                    className="text-red-600 hover:text-red-700"
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                              ) : (
+                                <span className="text-sm leading-relaxed" style={{ color: "#374151" }}>
+                                  {task}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {isEditing && (
+                    <div className="text-center">
+                      <Button onClick={handleAddStep} variant="outline">
+                        Add New Step
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
-
-              <div className="mt-8 p-4 bg-muted/30 rounded-lg border border-dashed border-muted-foreground/20">
-                <p className="text-sm text-muted-foreground text-center">
-                  💡 Tip: Break each step into smaller daily goals to track your progress effectively
-                </p>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
