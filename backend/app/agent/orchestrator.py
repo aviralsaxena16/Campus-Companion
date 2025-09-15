@@ -12,6 +12,7 @@ from app.agent.tools.event_parser_tool import EventParserTool
 from app.agent.tools.rag_tool import DocumentQueryTool
 from app.agent.tools.contest_scanner_tool import ContestScannerTool # <-- IMPORT NEW TOOL
 from app.agent.tools.bulk_event_parser_tool import BulkEventParserTool
+from app.agent.tools.advisor_tool import AdvisorTool
 load_dotenv()
 
 
@@ -23,7 +24,8 @@ tools = [
     GmailReaderTool(),
     EventParserTool(),
     DocumentQueryTool(),
-    ContestScannerTool()
+    ContestScannerTool(),
+     AdvisorTool()
 ]
 
 # prompt = ChatPromptTemplate.from_messages([
@@ -93,12 +95,14 @@ prompt = ChatPromptTemplate.from_messages([
      "\n1.  If the user asks about 'contests', 'leetcode', or 'codeforces', you MUST use the `contest_scanner_tool`. This tool returns a clean JSON list of all upcoming contests, ready for scheduling."
      "\n2.  If the user asks to schedule the contests, you MUST then call the `Calendar` tool for **EACH** event in the list returned by the scanner. You must loop through every contest and schedule all of them."
      "\n\n"
-     "**CRITICAL RULE:** Do not explain your plan. Execute the necessary workflow from start to finish. If the user asks you to schedule events, your final response MUST be a confirmation that the events have been added to the calendar."
+     "**Workflow #4: Strategic Advising**"
+     "\n- If the user asks for a 'roadmap', 'plan', 'how to prepare', or 'how to learn', you MUST use the `advisor_tool`."
+     "\n- The tool will return a structured JSON roadmap. You must return this JSON object directly as your final answer, without adding any conversational text."
+    "**CRITICAL RULE:** Do not explain your plan. Execute the necessary workflow from start to finish. If the user asks you to schedule events, your final response MUST be a confirmation that the events have been added to the calendar."
     ),
     ("user", "{input}"),
     MessagesPlaceholder(variable_name="agent_scratchpad"),
 ])
-
 
 agent = create_openai_tools_agent(llm, tools, prompt)
 
