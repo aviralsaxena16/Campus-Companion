@@ -112,12 +112,12 @@ agent_executor = AgentExecutor(
     return_intermediate_steps=False
 )
 
-async def get_agent_response(user_input: str, user_email: str):
+async def get_agent_response(user_input: str, user_email: str,config: dict = {}):
     try:
         response = await agent_executor.ainvoke({
-            "input": user_input,
-            "user_email": user_email
-        })
+        "input": user_input,
+        "user_email": user_email 
+        }, config=config)
         
         output = response.get('output', '')
         if not output or output.strip().endswith('<tool_call>'):
