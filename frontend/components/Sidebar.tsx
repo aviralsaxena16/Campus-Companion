@@ -1,4 +1,3 @@
-// In frontend/components/Sidebar.tsx
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -6,7 +5,7 @@ import { Separator } from "@/components/ui/separator"
 import { MessageSquare, Mail, Zap, Home as HomeIcon, LogOut } from "lucide-react"
 import React from "react"
 import { useSession, signOut } from "next-auth/react"
-import AuthButtons from "./AuthButtons" // Remember to style this component too!
+import AuthButtons from "./AuthButtons"
 
 interface SidebarProps {
   currentView: string
@@ -15,8 +14,15 @@ interface SidebarProps {
   setSidebarOpen: (open: boolean) => void
 }
 
-// Custom styled button component for our doodle theme
-const NavButton = ({ isActive, onClick, children }: { isActive: boolean, onClick: () => void, children: React.ReactNode }) => {
+const NavButton = ({
+  isActive,
+  onClick,
+  children,
+}: {
+  isActive: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) => {
   const baseClasses = "justify-start w-full text-lg py-3 px-4 rounded-2xl transition-all duration-300 border-2"
   const activeClasses = "bg-orange-500 text-white border-black font-bold shadow-[2px_2px_0px_#000] hover:bg-orange-600"
   const inactiveClasses = "bg-transparent text-black border-transparent hover:bg-orange-100 hover:border-black"
@@ -27,15 +33,17 @@ const NavButton = ({ isActive, onClick, children }: { isActive: boolean, onClick
       className={`${baseClasses} ${isActive ? activeClasses : inactiveClasses}`}
       style={{ fontFamily: "'Baloo 2', cursive" }}
     >
-      <div className="flex items-center">
-        {children}
-      </div>
+      <div className="flex items-center">{children}</div>
     </button>
   )
 }
 
-
-export default function Sidebar({ currentView, setCurrentView, sidebarOpen, setSidebarOpen }: SidebarProps) {
+export default function Sidebar({
+  currentView,
+  setCurrentView,
+  sidebarOpen,
+  setSidebarOpen,
+}: SidebarProps) {
   const { data: session } = useSession()
 
   const handleNavigation = (view: string) => {
@@ -45,8 +53,9 @@ export default function Sidebar({ currentView, setCurrentView, sidebarOpen, setS
 
   return (
     <aside
-      // UPDATED: Reduced border thickness from 4px to 2px
-      className={`fixed inset-y-0 left-0 z-50 w-72 flex-col border-r-2 border-black bg-white p-6 md:flex ${sidebarOpen ? "flex" : "hidden"}`}
+      className={`fixed inset-y-0 left-0 z-50 w-70 flex-col border-r-2 border-black bg-white p-6 md:flex ${
+        sidebarOpen ? "flex" : "hidden"
+      }`}
     >
       <h2
         className="text-4xl font-bold text-black"
@@ -55,25 +64,27 @@ export default function Sidebar({ currentView, setCurrentView, sidebarOpen, setS
         Campus Companion
       </h2>
 
-      {/* UPDATED: Reduced separator thickness from 3px to 2px */}
       <div className="my-4 h-[2px] w-full rounded-full bg-black"></div>
 
       <nav className="flex flex-col space-y-2 mt-4">
         <NavButton isActive={currentView === "home"} onClick={() => handleNavigation("home")}>
-          <HomeIcon className="mr-3 h-5 w-5" />Home
+          <HomeIcon className="mr-3 h-5 w-5" />
+          Home
         </NavButton>
         <NavButton isActive={currentView === "chat"} onClick={() => handleNavigation("chat")}>
-          <MessageSquare className="mr-3 h-5 w-5" />Agent Chat
+          <MessageSquare className="mr-3 h-5 w-5" />
+          Agent Chat
         </NavButton>
         <NavButton isActive={currentView === "updates"} onClick={() => handleNavigation("updates")}>
-          <Mail className="mr-3 h-5 w-5" />Important Updates
+          <Mail className="mr-3 h-5 w-5" />
+          Important Updates
         </NavButton>
         <NavButton isActive={currentView === "advisor"} onClick={() => handleNavigation("advisor")}>
-          <Zap className="mr-3 h-5 w-5" />Advisor Agent
+          <Zap className="mr-3 h-5 w-5" />
+          Advisor Agent
         </NavButton>
       </nav>
 
-      {/* UPDATED: Reduced border thickness from 4px to 2px */}
       <div className="mt-auto pt-4 border-t-2 border-black">
         {session ? (
           <div className="flex items-center justify-between">
@@ -83,12 +94,16 @@ export default function Sidebar({ currentView, setCurrentView, sidebarOpen, setS
             >
               {session.user?.name || session.user?.email}
             </span>
-            <Button variant="ghost" size="icon" onClick={() => signOut()} className="hover:text-orange-500 hover:bg-orange-100 rounded-full">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => signOut()}
+              className="hover:text-orange-500 hover:bg-orange-100 rounded-full"
+            >
               <LogOut className="w-5 h-5" />
             </Button>
           </div>
         ) : (
-          // Make sure to style AuthButtons to match this new theme!
           <AuthButtons />
         )}
       </div>
