@@ -364,8 +364,8 @@ export default function AdvisorView() {
 
   return (
     <div className="flex flex-col h-full bg-white text-black">
-      <header className="flex items-center border-b-2 border-black bg-white p-4 justify-between flex-wrap">
-        <h1 className="text-3xl font-bold" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
+      <header className="flex items-center ml-8 border-b-2 border-black bg-white p-4 justify-between flex-wrap">
+        <h1 className="text-3xl font-bold ml-8" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
           Advisor Agent
         </h1>
         {roadmap && !roadmap.error && (
