@@ -17,6 +17,10 @@ In today's hyper-connected university environment, students are inundated with a
 ## The Solution: A Proactive AI Partner
 Campus Companion is an intelligent agent built to combat this digital overload. It serves as a proactive digital partner that automates the entire opportunity-management lifecycle, transforming chaos into clarity. More than just a productivity tool, Campus Companion is designed to reduce the cognitive load and anxiety of modern student life, allowing students to focus on what truly matters.
 
+<img width="1880" height="920" alt="Screenshot 2025-09-17 021316" src="https://github.com/user-attachments/assets/19f8887d-039e-42f0-8c8a-7bed445bd14e" />
+<img width="1327" height="639" alt="image" src="https://github.com/user-attachments/assets/e4df62d7-24bb-45b9-a1cf-0f4af9b8cf15" />
+
+
 ---
 
 ## Key Features
@@ -81,7 +85,7 @@ cd Campus-Companion
 ```bash
 cd backend
 py -3.11 -m venv venv
-.env\Scriptsctivate
+.venv\Scripts\activate
 pip install -r requirements.txt
 playwright install
 # Add your credentials to a new .env file (see .env.example)
