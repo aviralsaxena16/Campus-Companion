@@ -1,0 +1,320 @@
+"use client"
+import React, { useState, useRef, useEffect, type FormEvent } from "react"
+import { useSession } from "next-auth/react"
+import { Send, Bot, User, Link as LinkIcon, Paperclip, Loader2, X, Check, Zap, Terminal, CheckCircle2 } from "lucide-react"
+import { createParser, type EventSourceMessage } from "eventsource-parser"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { motion, AnimatePresence } from "framer-motion"
+
+interface Message {
+  text: string
+  sender: "user" | "ai"
+}
+interface PlanStep {
+  type: string
+  content: string
+}
+
+export default function ChatSection() {
+  const { data: session } = useSession()
+  const [messages, setMessages] = useState<Message[]>([])
+  const [input, setInput] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [uploadedFilePath, setUploadedFilePath] = useState<string | null>(null)
+  const [planSteps, setPlanSteps] = useState<PlanStep[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const [attachedLink, setAttachedLink] = useState<string | null>(null)
+  const [showLinkInput, setShowLinkInput] = useState(false)
+  const [linkInputValue, setLinkInputValue] = useState("")
+
+  const startAttachLink = () => setShowLinkInput(true)
+  const confirmAttachLink = () => {
+    if (linkInputValue.trim()) {
+      setAttachedLink(linkInputValue.trim())
+      setLinkInputValue("")
+      setShowLinkInput(false)
+    }
+  }
+  const removeAttachedLink = () => setAttachedLink(null)
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages, planSteps])
+
+    // ... (Your existing API handlers remain unchanged)
+    const handleConnectGoogle = async () => {
+    if (!session?.user?.email) return alert("Please sign in first.")
+    alert(
+      "This will trigger a browser pop-up for Google authentication. Please check your browser and complete the sign-in flow.",
+    )
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/users/connect_google_account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_email: session.user.email }),
+      })
+      const data = await response.json()
+      alert(data.message)
+    } catch (error) {
+      console.error("Failed to connect Google Account:", error)
+      alert("Failed to connect Google Account. Check the console for details.")
+    }
+  }
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setIsLoading(true)
+    const formData = new FormData()
+    formData.append("file", file)
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/files/upload", {
+        method: "POST",
+        body: formData,
+      })
+      const data = await response.json()
+      if (response.ok) {
+        setUploadedFilePath(data.file_path)
+        alert(`File "${file.name}" uploaded successfully! You can now ask questions about it.`)
+      } else {
+        throw new Error(data.detail || "File upload failed")
+      }
+    } catch (error) {
+      console.error("File upload error:", error)
+      alert((error as Error).message)
+    } finally {
+      setIsLoading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    let currentInput = input
+    if (!currentInput.trim() || !session?.user?.email) return
+    if (uploadedFilePath) {
+      currentInput = `(Regarding the uploaded file at path: ${uploadedFilePath}) ${currentInput}`
+      setUploadedFilePath(null)
+    }
+    if (attachedLink) {
+        currentInput = `(Regarding the link: ${attachedLink}) ${currentInput}`
+        setAttachedLink(null)
+    }
+    const userMessage: Message = { text: input, sender: "user" }
+    setMessages((prev) => [...prev, userMessage])
+    setPlanSteps([])
+    setIsLoading(true)
+    setInput("")
+
+    const response = await fetch("http://127.0.0.1:8000/api/chat/stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: currentInput, user_email: session.user.email }),
+    })
+
+    if (!response.ok || !response.body) {
+      setIsLoading(false)
+      const errorMessage: Message = { text: "Sorry, I ran into an error connecting to the agent.", sender: "ai" }
+      setMessages((prev) => [...prev, errorMessage])
+      return
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    const parser = createParser({
+      onEvent(event: EventSourceMessage) {
+        try {
+          if (event.event === "start") return
+          const data = JSON.parse(event.data)
+          if (event.event === "tool_start") {
+            setPlanSteps((prev) => [
+              ...prev,
+              {
+                type: "Tool Call",
+                content: `${data.tool}(${JSON.stringify(data.tool_input)})`,
+              },
+            ])
+          } else if (event.event === "tool_end") {
+            setPlanSteps((prev) => [
+              ...prev,
+              {
+                type: "Tool Output",
+                content: `Result: ${data.output.substring(0, 150)}...`,
+              },
+            ])
+          } else if (event.event === "final_chunk") {
+            setMessages((prev) => [...prev, { text: data.output, sender: "ai" }])
+            setPlanSteps((prev) => [...prev, { type: "Finished", content: "Agent has finished." }])
+          }
+        } catch (e) {
+          console.error("Streaming parse error:", e)
+        }
+      },
+    })
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      const chunk = decoder.decode(value, { stream: true })
+      parser.feed(chunk)
+    }
+
+    setIsLoading(false)
+  }
+
+ return (
+  <div className="flex h-screen bg-white text-black">
+    {/* Main chat area and Agent Plan sidebar */}
+    <div className="flex flex-1 flex-col">
+      {/* Header */}
+      <header className="flex ml-8 shrink-0 items-center justify-between border-b-2 border-black p-4">
+        <h1 className="text-3xl font-bold" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
+          Agent Chat
+        </h1>
+        {session && (
+          <Button
+            onClick={handleConnectGoogle}
+            variant="outline"
+            style={{ fontFamily: "'Baloo 2', cursive" }}
+            className="border-2 border-black bg-white px-4 py-2 text-sm font-bold hover:bg-orange-100"
+          >
+            <LinkIcon className="mr-2 h-4 w-4" />
+            Connect Google Account
+          </Button>
+        )}
+      </header>
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Chat messages & input */}
+        <div className="flex-1 flex flex-col">
+          <div className="flex-1 space-y-6 overflow-y-auto p-4 md:p-6">
+            {messages.map((msg, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex items-start gap-4 ${msg.sender === "user" ? "justify-end" : ""}`}
+              >
+                {msg.sender === "ai" && <Bot className="h-8 w-8 flex-shrink-0 text-orange-500" />}
+                <div
+                  style={{ fontFamily: "'Baloo 2', cursive" }}
+                  className={`max-w-lg rounded-2xl border-2 border-black px-5 py-3 shadow-[2px_2px_0px_#000] ${
+                    msg.sender === "user" ? "bg-orange-500 text-white" : "bg-white"
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap text-base">{msg.text}</p>
+                </div>
+                {msg.sender === "user" && <User className="h-8 w-8 flex-shrink-0 text-gray-700" />}
+              </motion.div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+          <form onSubmit={handleSubmit} className="relative ml-8 flex shrink-0 items-center gap-2 border-t-2 border-black bg-white p-4">
+            {/* File upload hidden input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              style={{ display: "none" }}
+              onChange={handleFileUpload}
+              accept=".pdf,.doc,.docx,.txt,.jpg,.png" // Add required types
+            />
+            {attachedLink ? (
+              <div className="flex items-center gap-2 rounded-full bg-orange-100 p-2 text-sm" style={{fontFamily: "'Baloo 2', cursive"}}>
+                <LinkIcon className="h-5 w-5 flex-shrink-0" />
+                <span className="max-w-[200px] truncate">{attachedLink}</span>
+                <button type="button" onClick={removeAttachedLink} className="p-1 hover:bg-orange-200 rounded-full"> <X className="h-4 w-4"/> </button>
+              </div>
+            ) : showLinkInput ? (
+              <div className="flex flex-1 items-center gap-2">
+                <Input
+                  placeholder="Paste link and press Enter"
+                  value={linkInputValue}
+                  onChange={(e) => setLinkInputValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); confirmAttachLink(); }
+                    if (e.key === "Escape") { e.preventDefault(); setShowLinkInput(false); }
+                  }}
+                  autoFocus
+                  className="flex-1 border-2 border-black rounded-xl focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                  style={{fontFamily: "'Baloo 2', cursive"}}
+                />
+                <Button type="button" size="icon" onClick={confirmAttachLink} className="bg-orange-500 hover:bg-orange-600 rounded-xl border-2 border-black"><Check className="h-5 w-5"/></Button>
+                <Button type="button" size="icon" variant="ghost" onClick={() => setShowLinkInput(false)} className="rounded-xl hover:bg-gray-200"><X className="h-5 w-5"/></Button>
+              </div>
+            ) : (
+              <>
+                {/* Trigger file upload */}
+                <Button type="button" size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={isLoading} title="Attach File" className="rounded-full hover:bg-orange-100">
+                  <Paperclip className="h-6 w-6" />
+                </Button>
+                <Button type="button" variant="ghost" onClick={startAttachLink} size="icon" title="Attach link" className="rounded-full hover:bg-orange-100">
+                  <LinkIcon className="h-6 w-6" />
+                </Button>
+                <Input
+                  placeholder="Ask your agent..."
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  disabled={!session || isLoading}
+                  style={{ fontFamily: "'Baloo 2', cursive" }}
+                  className="flex-1 rounded-full border-2 border-black px-5 py-6 text-base focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                />
+                <Button
+                  type="submit"
+                  size="icon"
+                  className="h-12 w-12 rounded-full border-2 border-black bg-orange-500 shadow-[2px_2px_0px_#000] hover:bg-orange-600"
+                  disabled={!session || isLoading || !input.trim()}
+                  title="Send message"
+                >
+                  {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Send className="h-6 w-6" />}
+                </Button>
+              </>
+            )}
+          </form>
+        </div>
+        {/* Agent Plan Sidebar */}
+        <aside className="w-80 shrink-0 border-l-2 border-black bg-orange-50 p-4 flex flex-col">
+          <Card className="h-full border-4 border-black bg-white shadow-[4px_4px_0px_#000] rounded-2xl">
+            <CardHeader>
+              <CardTitle className="text-2xl" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
+                Agent Plan
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="overflow-y-auto">
+              {planSteps.length === 0 && (
+                <p className="text-gray-800" style={{ fontFamily: "'Baloo 2', cursive" }}>
+                  {isLoading ? "Agent is thinking..." : "The agent's real-time plan will appear here."}
+                </p>
+              )}
+              <div className="relative space-y-4">
+                {planSteps.length > 1 && <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-gray-300"></div>}
+                <AnimatePresence>
+                  {planSteps.map((step, index) => {
+                    const Icon = step.type === "Tool Call" ? Zap : step.type === "Tool Output" ? Terminal : CheckCircle2;
+                    const color = step.type === "Tool Call" ? "text-orange-600" : step.type === "Tool Output" ? "text-gray-600" : "text-green-600";
+                    return (
+                      <motion.div key={index} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="relative z-10 flex items-start gap-4">
+                        <div className={`flex-shrink-0 rounded-full border-2 border-gray-300 bg-white p-2 ${color}`}>
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1" style={{ fontFamily: "'Baloo 2', cursive" }}>
+                          <p className={`font-bold ${color}`}>{step.type}</p>
+                          <p className="break-words text-sm text-gray-800">{step.content}</p>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
+            </CardContent>
+          </Card>
+        </aside>
+      </div>
+    </div>
+  </div>
+)
+
+}
