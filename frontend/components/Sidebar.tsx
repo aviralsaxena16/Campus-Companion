@@ -77,7 +77,7 @@ export default function Sidebar({
         </NavButton>
         <NavButton isActive={currentView === "updates"} onClick={() => handleNavigation("updates")}>
           <Mail className="mr-3 h-5 w-5" />
-          Important Updates
+          Mail Updates
         </NavButton>
         <NavButton isActive={currentView === "advisor"} onClick={() => handleNavigation("advisor")}>
           <Zap className="mr-3 h-5 w-5" />

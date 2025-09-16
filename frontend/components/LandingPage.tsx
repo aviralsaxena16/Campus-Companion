@@ -8,8 +8,9 @@ import { CalendarClock, FileText, Zap, BookOpen, Layers, Target } from "lucide-r
 
 
 interface LandingPageProps {
-  setCurrentView: (view: string) => void;
+  setCurrentView: React.Dispatch<React.SetStateAction<string>>
 }
+
 
 const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) => (
   <div className="p-5 bg-white rounded-2xl border-3 border-black shadow-md hover:border-orange-500 transition-all duration-300 group max-w-sm mx-auto">
@@ -45,9 +46,9 @@ export default function LandingPage({ setCurrentView }: LandingPageProps) {
       {/* CHANGED: Significantly moved content up (pt-20) and right (lg:px-24) */}
       <section className="flex items-center justify-center flex-grow pt-20 pb-16 px-6 lg:px-24 relative overflow-visible">
         {/* CHANGED: Moved image up (top-0) and resized it to create more space */}
-        <div className="absolute top-0 right-0 w-full h-full lg:w-[50%] lg:h-[600px] pointer-events-none z-0">
+        <div className="absolute top-0 right-15 w-full h-full lg:w-[50%] lg:h-[600px] pointer-events-none z-0">
           <Image
-            src="/landing.png"
+            src="/landing2.png"
             alt="Doodle-style illustrations for Campus Companion"
             layout="fill"
             objectFit="contain"

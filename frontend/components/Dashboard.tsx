@@ -35,8 +35,8 @@ export default function Dashboard() {
       {/* Main content with left padding matching smaller sidebar width (w-56 = 224px) */}
       <main className="flex flex-1 flex-col transition-all duration-300 md:pl-70">
         {currentView === "home" && (
-          <LandingPage currentView={currentView} setCurrentView={setCurrentView} />
-        )}
+  <LandingPage setCurrentView={setCurrentView} />
+)}
         {currentView === "chat" && <ChatSection />}
         {currentView === "updates" && <UpdatesView />}
         {currentView === "advisor" && <AdvisorView />}
