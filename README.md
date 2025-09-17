@@ -48,7 +48,6 @@ More than just a productivity tool, Campus Companion is designed to **reduce cog
 | 🖥️ **Plan Monitoring & Editing UI** | A user interface that allows monitoring the agent's step-by-step reasoning in real time, and editing or customizing the agent’s plan. |
 | 🗺️ **Strategic Advisor** | Generates personalized, step-by-step roadmaps for goals like hackathon preparation. Users can edit the agent's plan and download the final version as a PDF. |
 | 📬 **Scheduled Updates** | Runs a daily background job to scan the user's inbox for important messages, summarizing them in a dedicated **Important Updates** section of the UI. |
-| 📊 **Export to Sheets** | Supports exporting important plans and updates directly to Google Sheets. |
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/e4df62d7-24bb-45b9-a1cf-0f4af9b8cf15" alt="Plan Monitoring UI" width="70%">
