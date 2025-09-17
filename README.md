@@ -1,67 +1,86 @@
-# Campus Companion: Your Proactive AI University Navigator
-**Clarity in your studies. Calm in your mind.**
+# Campus Companion: Your Proactive AI University Navigator 🚀  
 
-This project is a submission for the Software Engineer internship role at *i am beside you.*
+**Clarity in your studies. Calm in your mind.**  
 
-**Name:** Aviral Saxena  
-**University:** Indian Institute of Technology Bhilai (IIT Bhilai)  
-**Department:** Computer Science and Engineering (CSE)  
+This project is a submission for the **Software Engineer Internship role** at **Imbesideyou**.  
 
 ---
 
-## The Problem: The Student's "Digital Overload"
-In today's hyper-connected university environment, students are inundated with a relentless stream of information. Critical opportunities—career-defining internships, skill-building workshops, hackathons, and essential academic deadlines—are scattered across a chaotic digital landscape of department websites, club emails, and PDF flyers. The manual effort required to track, filter, and organize this information is a significant source of stress and anxiety, creating a pervasive "Fear of Missing Out" (FOMO) that impacts focus and mental well-being.
+## 📌 Project Information  
+
+- **Name:** Aviral Saxena  
+- **University:** Indian Institute of Technology Bhilai (IIT Bhilai)  
+- **Department:** Computer Science and Engineering (CSE)  
+
+<p align="center">
+ <img width="80%" alt="Screenshot 2025-09-17 095256" src="https://github.com/user-attachments/assets/85b26127-2a86-4ba0-9060-eb34f1eb7753" />
+
+</p>  
 
 ---
 
-## The Solution: A Proactive AI Partner
-Campus Companion is an intelligent agent built to combat this digital overload. It serves as a proactive digital partner that automates the entire opportunity-management lifecycle, transforming chaos into clarity. More than just a productivity tool, Campus Companion is designed to reduce the cognitive load and anxiety of modern student life, allowing students to focus on what truly matters.
+## ❗ The Problem: The Student's "Digital Overload" 😥  
 
-<img width="1880" height="920" alt="Screenshot 2025-09-17 021316" src="https://github.com/user-attachments/assets/19f8887d-039e-42f0-8c8a-7bed445bd14e" />
-<img width="1327" height="639" alt="image" src="https://github.com/user-attachments/assets/e4df62d7-24bb-45b9-a1cf-0f4af9b8cf15" />
+In today's university environment, students are inundated with a relentless stream of information.  
 
+Critical opportunities—career-defining internships, skill-building workshops, and essential academic deadlines—are scattered across a chaotic digital landscape of department websites, emails, and PDFs.  
 
----
-
-## Key Features
-
-### Multi-Modal Intelligence
-The agent can ingest and understand information from a variety of sources:
-- **Websites:** Scans live websites, including JavaScript-heavy pages, for event information.  
-- **Emails:** Securely reads a user's Gmail inbox to find and schedule important events.  
-- **PDFs:** Ingests uploaded PDF documents, allowing for detailed Q&A using a Retrieval-Augmented Generation (RAG) system.  
-
-### Proactive Contest Discovery
-The agent doesn't just wait for URLs. It can proactively find upcoming competitive programming contests by integrating directly with reliable public APIs for platforms like LeetCode and Codeforces.
-
-### Automated Scheduling & Plan Monitoring
-The agent's core function is to reason, plan, and execute:  
-- It can parse event details from any source and automatically schedule them on a user's personal Google Calendar.  
-- The **Plan Monitoring UI** provides a real-time, step-by-step view of the agent's internal thought process, from tool selection to final execution.  
-
-### Strategic Advisor & Plan Editing
-The agent can generate personalized, step-by-step roadmaps for complex goals, like preparing for a hackathon. The user can then:  
-- View the visual roadmap in the UI.  
-- Edit the agent's plan directly in the interface.  
-- Download the final, customized plan as a PDF.  
-
-### Scheduled Important Updates
-The agent runs a proactive background job every 24 hours to scan the user's inbox for important, unread emails. It summarizes these findings and displays them in a dedicated **Important Updates** section of the application.
+This manual effort creates a pervasive **"Fear of Missing Out" (FOMO)**, impacting students' focus and mental well-being.  
 
 ---
 
-## Tech Stack & Architecture
-The application is built on a modern, scalable, three-tiered architecture.
+## 💡 The Solution: A Proactive AI Partner  
 
-- **Frontend:** Next.js with TypeScript and Tailwind CSS. User authentication is handled by NextAuth.js.  
-- **Backend:** FastAPI (Python) for its high performance and native asynchronous support.  
-- **AI Core:** LangChain is used to orchestrate the agent, its multi-tool chain, and its interaction with the LLM.  
-- **LLM:** Google Gemini powers the agent's reasoning, planning, and summarization capabilities.  
-- **Database:** PostgreSQL (hosted on Supabase) for storing user data and application state.  
-- **Tools & Integrations:** Playwright, Google APIs (Gmail, Calendar), CList.by API, Hugging Face Embeddings.  
+**Campus Companion** is an intelligent agent built to combat this digital overload.  
 
-*(For a full breakdown, please see the System Design Document in this repository.)*
+It serves as a **proactive digital partner** that automates the entire opportunity-management lifecycle, transforming **chaos into clarity**.  
 
+More than just a productivity tool, Campus Companion is designed to **reduce cognitive load and anxiety**, allowing students to focus on what truly matters.  
+
+---
+
+## ✨ Key Features  
+
+| Feature | Description |
+|---------|-------------|
+| 🧠 **Multi-Modal Intelligence** | Ingests and understands information from live websites, Gmail, and PDFs, featuring a full Retrieval-Augmented Generation (RAG) system for document Q&A and also can schedule the events in them directly to your calendar. |
+| 🔍 **Proactive Discovery** | Automatically scans platforms like LeetCode and Codeforces via public APIs to find and can update it to your calendar the upcoming competitive programming contests with just a prompt. |
+| 🤖 **Automated Scheduling** | Intelligently parses event details from any source and adds them directly to the user's Google Calendar on a single prompt. |
+| 🖥️ **Plan Monitoring & Editing UI** | A user interface that allows monitoring the agent's step-by-step reasoning in real time, and editing or customizing the agent’s plan. |
+| 🗺️ **Strategic Advisor** | Generates personalized, step-by-step roadmaps for goals like hackathon preparation. Users can edit the agent's plan and download the final version as a PDF. |
+| 📬 **Scheduled Updates** | Runs a daily background job to scan the user's inbox for important messages, summarizing them in a dedicated **Important Updates** section of the UI. |
+
+<p align="center">
+ <img width="70%" alt="Screenshot 2025-09-17 020434" src="https://github.com/user-attachments/assets/917cfde4-8c6a-4e0a-9c25-ed7ae9112f22" />
+
+</p>  
+
+---
+
+## 🛠️ Tech Stack & Architecture  
+
+The application is built on a **modern three-tier architecture** designed for scalability and responsiveness.  
+
+| Category   | Technologies |
+|------------|--------------|
+| **Frontend** | Next.js, TailwindCSS |
+| **Backend**  | FastAPI |
+| **AI Core**  | Langchain, RAG Pipeline |
+| **Database** | Supabase (PostgreSQL) |
+| **Tools**    | Google APIs (Gmail, Calendar), CList API,Codeforces API |
+
+📖 *(For a full breakdown, please see the **System Design Document** in this repository.)*  
+
+---
+
+## 🚀 How to Run This Project  
+
+### 🔧 Prerequisites   
+- Python 3.11  
+- A Google Cloud Project with OAuth credentials and the Gmail & Calendar APIs enabled  
+- A Supabase project for the PostgreSQL database  
+
+---
 ---
 
 ## How to Run This Project
