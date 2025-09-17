@@ -48,7 +48,7 @@ export default function LandingPage({ setCurrentView }: LandingPageProps) {
         {/* CHANGED: Moved image up (top-0) and resized it to create more space */}
         <div className="absolute top-0 right-15 w-full h-full lg:w-[50%] lg:h-[600px] pointer-events-none z-0">
           <Image
-            src="/landing2.png"
+            src="/landing3.png"
             alt="Doodle-style illustrations for Campus Companion"
             layout="fill"
             objectFit="contain"
