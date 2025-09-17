@@ -55,6 +55,15 @@ More than just a productivity tool, Campus Companion is designed to **reduce cog
 
 </p>  
 
+
+---
+
+### 🎥 Live Demo Video
+
+
+[**Watch the full demo of Campus Companion on Google Drive**](https://drive.google.com/file/d/15Yd4YmEe62-l7Q4d8gWZu-rR9bkkMxb3/view?usp=sharing)
+
+*(For a full breakdown, please see the **[System Design Document](link-to-your-sdd.pdf)** in this repository.)*
 ---
 
 ## 🛠️ Tech Stack & Architecture  
