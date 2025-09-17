@@ -13,7 +13,8 @@ This project is a submission for the **Software Engineer Internship role** at **
 - **Department:** Computer Science and Engineering (CSE)  
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/19f8887d-039e-42f0-8c8a-7bed445bd14e" alt="Campus Companion Dashboard" width="80%">
+ <img width="80%" alt="Screenshot 2025-09-17 095256" src="https://github.com/user-attachments/assets/85b26127-2a86-4ba0-9060-eb34f1eb7753" />
+
 </p>  
 
 ---
@@ -50,7 +51,8 @@ More than just a productivity tool, Campus Companion is designed to **reduce cog
 | 📬 **Scheduled Updates** | Runs a daily background job to scan the user's inbox for important messages, summarizing them in a dedicated **Important Updates** section of the UI. |
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/e4df62d7-24bb-45b9-a1cf-0f4af9b8cf15" alt="Plan Monitoring UI" width="70%">
+ <img width="70%" alt="Screenshot 2025-09-17 020434" src="https://github.com/user-attachments/assets/917cfde4-8c6a-4e0a-9c25-ed7ae9112f22" />
+
 </p>  
 
 ---
