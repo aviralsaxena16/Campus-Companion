@@ -2,7 +2,7 @@
 
 **Clarity in your studies. Calm in your mind.**  
 
-This project is a submission for the **Software Engineer Internship role** at **i am beside you**.  
+This project is a submission for the **Software Engineer Internship role** at **Imbesideyou**.  
 
 ---
 
