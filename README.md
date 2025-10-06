@@ -2,8 +2,6 @@
 
 **Clarity in your studies. Calm in your mind.**  
 
-This project is a submission for the **Software Engineer Internship role** at **Imbesideyou**.  
-
 ---
 
 ## 📌 Project Information  
