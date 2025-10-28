@@ -1,11 +1,13 @@
+// In your Sidebar component file
+
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { MessageSquare, Mail, Zap, Home as HomeIcon, LogOut } from "lucide-react"
+// --- 1. Import 'LogIn' from lucide-react ---
+import { MessageSquare, Mail, Zap, Home as HomeIcon, LogOut, LogIn } from "lucide-react" 
 import React from "react"
-import { useSession, signOut } from "next-auth/react"
-import AuthButtons from "./AuthButtons"
+import { useAuth } from "@/context/AuthContext" 
+import { signOut } from "next-auth/react"
 
 interface SidebarProps {
   currentView: string
@@ -44,11 +46,25 @@ export default function Sidebar({
   sidebarOpen,
   setSidebarOpen,
 }: SidebarProps) {
-  const { data: session } = useSession()
+  const { session, status, requestProtectedAccess } = useAuth()
 
   const handleNavigation = (view: string) => {
-    setCurrentView(view)
-    setSidebarOpen(false) // Always close sidebar on navigation
+    let accessGranted = true;
+    
+    if (view !== 'home') {
+      accessGranted = requestProtectedAccess();
+    }
+    
+    if (accessGranted) {
+      setCurrentView(view)
+      setSidebarOpen(false) 
+    }
+  }
+
+  // --- DEBUGGING: New click handler ---
+  const handleSignInClick = () => {
+    console.log("Sidebar: Sign In button clicked!"); // <-- ** THIS IS THE DEBUG LINE **
+    requestProtectedAccess();
   }
 
   return (
@@ -86,7 +102,7 @@ export default function Sidebar({
       </nav>
 
       <div className="mt-auto pt-4 border-t-2 border-black">
-        {session ? (
+        {status === 'authenticated' && session?.user ? (
           <div className="flex items-center justify-between">
             <span
               className="truncate text-base font-bold text-gray-800"
@@ -104,7 +120,18 @@ export default function Sidebar({
             </Button>
           </div>
         ) : (
-          <AuthButtons />
+          // --- 2. THIS IS THE NEW CODE ---
+          // Replaced the "Not signed in" text with a clear "Sign In" button.
+          <Button
+            onClick={handleSignInClick} // <-- ** USING THE NEW HANDLER **
+            className="justify-start w-full text-lg py-3 px-4 rounded-2xl transition-all duration-300 border-2 border-black bg-orange-500 text-white font-bold shadow-[2px_2px_0px_#000] hover:bg-orange-600"
+            style={{ fontFamily: "'Baloo 2', cursive" }}
+          >
+            <div className="flex items-center">
+              <LogIn className="mr-3 h-5 w-5" />
+              Sign In
+            </div>
+          </Button>
         )}
       </div>
     </aside>
