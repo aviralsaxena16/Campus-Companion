@@ -16,7 +16,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 # The LLM for answering the question (this stays the same)
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=os.getenv("GOOGLE_API_KEY"), temperature=0)
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-pro", google_api_key=os.getenv("GOOGLE_API_KEY"), temperature=0)
 
 class DocumentQueryInput(BaseModel):
     file_path: str = Field(description="The local server path to the PDF document.")

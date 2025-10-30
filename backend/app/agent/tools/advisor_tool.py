@@ -9,7 +9,7 @@ from langchain_core.output_parsers.json import JsonOutputParser
 from langchain_google_genai import ChatGoogleGenerativeAI
 import os
 
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=os.getenv("GOOGLE_API_KEY"), temperature=0)
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-pro", google_api_key=os.getenv("GOOGLE_API_KEY"), temperature=0)
 
 class AdvisorInput(BaseModel):
     goal: str = Field(description="The user's goal to create a roadmap for (e.g., 'learn React', 'prepare for the SIH hackathon').")

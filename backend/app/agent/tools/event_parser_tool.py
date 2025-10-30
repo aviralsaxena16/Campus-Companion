@@ -22,7 +22,7 @@ class EventParserTool(BaseTool):
         try:
             print(f"[DEBUG] Parsing text of length: {len(text_to_parse)}")  # Added debug logging
             
-            llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=os.getenv("GOOGLE_API_KEY"), temperature=0)
+            llm = ChatGoogleGenerativeAI(model="gemini-2.5-pro", google_api_key=os.getenv("GOOGLE_API_KEY"), temperature=0)
             
             parser_prompt = ChatPromptTemplate.from_template(
                 "You are an expert event detail extractor. Analyze the text and extract event information. "
