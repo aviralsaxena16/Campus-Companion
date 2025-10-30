@@ -5,10 +5,16 @@ from sqlalchemy.orm import Session
 from app import models
 from app.database import SessionLocal
 
+# --- THIS IMPORT IS THE KEY FIX ---
+from google.auth.transport import requests
+
+# --- THIS IS THE SCOPE FIX ---
+# Updated to match the exact scopes requested by the frontend AuthContext
 SCOPES = [
-    "https://www.googleapis.com/auth/calendar.events",
+    "https://www.googleapis.com/auth/calendar",
     "https://www.googleapis.com/auth/gmail.readonly"
 ]
+# --- END OF SCOPE FIX ---
 
 def get_user_credentials(user_email: str) -> Credentials:
     """
@@ -22,15 +28,10 @@ def get_user_credentials(user_email: str) -> Credentials:
         if not user or not user.google_refresh_token:
             raise Exception(f"User '{user_email}' has no refresh token in the database.")
 
-        # --- THIS IS THE UPDATED LOGIC ---
-        # Reconstruct the credentials object from the stored refresh token
-        # It uses the WEB client IDs, not the old desktop ones.
         creds_info = {
             "token": None, # Access token will be fetched
             "refresh_token": user.google_refresh_token,
             "token_uri": "https://oauth2.googleapis.com/token",
-            
-            # Use the same client ID as the frontend
             "client_id": os.getenv("GOOGLE_AUDIENCE_CLIENT_ID"), 
             "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
             "scopes": SCOPES,
@@ -40,9 +41,13 @@ def get_user_credentials(user_email: str) -> Credentials:
         
         # We must refresh the token to get a new access token
         if creds.expired and creds.refresh_token:
-            creds.refresh(None) # Pass None for the httpx request
+            # --- THIS IS THE FIX ---
+            # We must pass a transport request object to the refresh() method.
+            creds.refresh(requests.Request())
+            # --- END OF FIX ---
         
         return creds
         
     finally:
         db.close()
+
