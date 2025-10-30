@@ -25,7 +25,7 @@ from app.agent.tools.advisor_tool import AdvisorTool
 load_dotenv()
 
 # Initialize the LLM globally
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-pro", google_api_key=os.getenv("GOOGLE_API_KEY"), temperature=0)
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=os.getenv("GOOGLE_API_KEY"), temperature=0)
 
 # --- DEFINE NON-AUTH TOOLS GLOBALLY ---
 # Tools that DON'T need Google Auth can be created once and reused.
