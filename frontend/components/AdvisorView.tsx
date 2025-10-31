@@ -206,7 +206,8 @@ export default function AdvisorView() {
     setIsEditing(false)
     
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/chat/stream", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const response = await fetch(`${apiUrl}/api/chat/stream`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",

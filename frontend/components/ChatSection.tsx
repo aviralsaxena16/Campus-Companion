@@ -60,7 +60,8 @@ export default function ChatSection() {
     const formData = new FormData()
     formData.append("file", file)
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/files/upload", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const response = await fetch(`${apiUrl}/api/files/upload`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${session.accessToken}`
@@ -106,7 +107,8 @@ export default function ChatSection() {
     setIsLoading(true)
     setInput("")
 
-    const response = await fetch("http://127.0.0.1:8000/api/chat/stream", {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const response = await fetch(`${apiUrl}/api/chat/stream`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",

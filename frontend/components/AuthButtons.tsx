@@ -12,7 +12,8 @@ export default function AuthButtons() {
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.email) {
       // User has just logged in, so we notify our backend
-      fetch('http://127.0.0.1:8000/api/users/login', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      fetch(`${apiUrl}/api/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: session.user.email }),

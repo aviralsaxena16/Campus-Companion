@@ -50,7 +50,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       const storeToken = async () => {
         try {
-          const response = await fetch("http://127.0.0.1:8000/api/users/store_refresh_token", {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+          const response = await fetch(`${apiUrl}/api/users/store_refresh_token`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

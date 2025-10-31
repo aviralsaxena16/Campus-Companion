@@ -26,7 +26,9 @@ export default function UpdatesView() {
     if (isFullyAuthenticated && session && session.accessToken) {
       setIsLoading(true)
       // --- 4. Call the new, protected endpoint ---
-      fetch("http://127.0.0.1:8000/api/updates", {
+      
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      fetch(`${apiUrl}/api/updates`, {
         headers: {
           // --- 5. Add the Authorization header ---
           "Authorization": `Bearer ${session.accessToken}`
@@ -59,7 +61,9 @@ export default function UpdatesView() {
 
     setIsScanning(true)
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/updates/scan_now", {
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const res = await fetch(`${apiUrl}/api/updates/scan_now`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
