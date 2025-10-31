@@ -31,6 +31,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="AI University Navigator API", lifespan=lifespan)
 
 origins = [
+    "https://campus-companion-six.vercel.app",
     "http://localhost:3000",
 ]
 
