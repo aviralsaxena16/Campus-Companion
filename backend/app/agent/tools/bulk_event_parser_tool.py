@@ -20,7 +20,7 @@ class BulkEventParserTool(BaseTool):
         # This prompt is specifically designed to extract a list of events
         parser_prompt = ChatPromptTemplate.from_template(
             "You are an expert event detail extractor. Analyze the text below and find ALL upcoming events or contests. "
-            "Today's date is September 14, 2025. The user is in 'Asia/Kolkata' timezone. "
+            " The user is in 'Asia/Kolkata' timezone. "
             "Your output MUST be a valid JSON list of objects. Each object must have these exact keys: 'title', 'start_time', 'end_time', 'location', 'description'. "
             "RULES:"
             "\n- Times MUST be in ISO 8601 format: YYYY-MM-DDTHH:MM:SS"

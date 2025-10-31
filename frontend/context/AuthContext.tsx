@@ -4,7 +4,6 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { useSession, signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { CheckCircle2, X } from "lucide-react"
-// --- 1. Swapped imports from shadcn/ui back to framer-motion ---
 import { motion, AnimatePresence } from "framer-motion"
 
 // Define the scopes your app needs again for the sign-in function
@@ -19,15 +18,7 @@ const REQUIRED_SCOPES = [
 interface AuthContextType {
   session: ReturnType<typeof useSession>["data"]
   status: ReturnType<typeof useSession>["status"]
-  /**
-   * 'true' if user is signed in AND has granted all required permissions.
-   */
   isFullyAuthenticated: boolean
-  /**
-   * This function is called by protected buttons.
-   * It checks auth and shows the modal if permissions are missing.
-   * @returns 'true' if access is granted, 'false' if modal was shown.
-   */
   requestProtectedAccess: () => boolean
 }
 
@@ -37,6 +28,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession()
   const [showAuthModal, setShowAuthModal] = useState(false)
   
+  // This state prevents us from spamming the backend
+  const [isTokenStored, setIsTokenStored] = useState(false)
+
   const isFullyAuthenticated = 
     status === "authenticated" && 
     !session?.error
@@ -48,6 +42,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [status, session, showAuthModal])
 
+  // This automatically stores the refresh token on the backend
+  useEffect(() => {
+    if (isFullyAuthenticated && session.refreshToken && !isTokenStored) {
+      console.log("AuthProvider: Storing refresh token...")
+      setIsTokenStored(true) // Set to true immediately to prevent re-runs
+      
+      const storeToken = async () => {
+        try {
+          const response = await fetch("http://127.0.0.1:8000/api/users/store_refresh_token", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session.accessToken}` 
+            },
+            body: JSON.stringify({
+              refresh_token: session.refreshToken
+            })
+          })
+          
+          if (response.ok) {
+            console.log("AuthProvider: Refresh token stored successfully.")
+          } else {
+            // --- THIS IS THE CHANGE ---
+            // We log response.text() because response.json() will fail
+            // if the server returned an HTML 500 error page.
+            console.error("AuthProvider: Failed to store refresh token. Server response:", await response.text())
+            setIsTokenStored(false) // Allow a retry on next render
+          }
+        } catch (error) {
+          console.error("AuthProvider: Error storing refresh token:", error)
+          setIsTokenStored(false) // Allow a retry
+        }
+      }
+      
+      storeToken()
+    }
+  }, [isFullyAuthenticated, session, isTokenStored])
+
   const requestProtectedAccess = () => {
     if (isFullyAuthenticated) {
       return true // Access granted
@@ -58,8 +90,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const handleSignIn = () => {
-    // When signing in, re-request all scopes to ensure
-    // we get the refresh token and fix any permission issues.
     signIn("google", undefined, { 
       prompt: "consent", 
       access_type: "offline", 
@@ -71,7 +101,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{ session, status, isFullyAuthenticated, requestProtectedAccess }}>
       {children}
       
-      {/* --- 2. Replaced shadcn/ui Dialog with framer-motion --- */}
       <AnimatePresence>
         {showAuthModal && (
           <motion.div
@@ -134,9 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext)
   if (context === undefined) {
-    // Correcting the TError from my previous version to a standard Error
     throw new Error("useAuth must be used within an AuthProvider")
   }
   return context
 }
-

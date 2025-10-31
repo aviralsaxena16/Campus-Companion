@@ -1,23 +1,24 @@
-# In backend/app/models.py
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime # Add ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
 from .database import Base
-from sqlalchemy.sql import func # Add func
+from sqlalchemy.sql import func
 
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True)
-    google_access_token = Column(String, nullable=True)
+    name = Column(String, nullable=True) 
+    
+    # --- THIS IS THE CRITICAL FIX ---
+    # We must store the refresh token for background scheduler tasks
     google_refresh_token = Column(String, nullable=True)
-    calendar_connected = Column(Boolean, default=False)
 
 class ImportantUpdate(Base):
     __tablename__ = "important_updates"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    source_id = Column(String, unique=True, index=True) # <-- ADD THIS LINE
+    source_id = Column(String, unique=True, index=True) 
     
     source = Column(String, default="email")
     title = Column(String)

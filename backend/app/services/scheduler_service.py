@@ -17,7 +17,13 @@ def run_email_summary_for_user(user_email: str) -> list:
     db: Session = SessionLocal()
     try:
         user = db.query(models.User).filter(models.User.email == user_email).first()
-        if not user or not user.calendar_connected: return []
+        
+        # --- THIS IS THE FIX ---
+        # We check for the refresh token, not the 'calendar_connected' column which no longer exists.
+        if not user or not user.google_refresh_token:
+            print(f"TASK: Skipping scan for {user_email}, no refresh token found.")
+            return []
+        # --- END OF FIX ---
 
         gmail_tool = GmailJsonTool(user_email=user_email)
         emails_json_str = gmail_tool.run()
@@ -33,7 +39,6 @@ def run_email_summary_for_user(user_email: str) -> list:
             all_updates = db.query(models.ImportantUpdate).filter(models.ImportantUpdate.user_id == user.id).order_by(models.ImportantUpdate.discovered_at.desc()).limit(20).all()
             return all_updates
 
-        # --- NEW, MORE DIRECT PROMPT ---
         summarizer_prompt = ChatPromptTemplate.from_template(
     "You are an expert AI assistant tasked with filtering a student's email inbox to find actionable and important messages. "
     "Analyze the following list of emails provided in JSON format. "
@@ -59,7 +64,6 @@ def run_email_summary_for_user(user_email: str) -> list:
         parser = JsonOutputParser()
         chain = summarizer_prompt | llm | parser
         
-        # We explicitly convert the list of emails to a JSON string for the prompt
         important_email_summaries = chain.invoke({"emails_json_string": json.dumps(new_emails)})
 
         new_updates_found = 0
@@ -84,7 +88,6 @@ def run_email_summary_for_user(user_email: str) -> list:
     finally:
         db.close()
 
-# The scheduled job is now just a lightweight wrapper
 def scheduled_job_wrapper(user_email: str):
     run_email_summary_for_user(user_email)
 
@@ -93,3 +96,4 @@ def start_scheduler_for_user(user_email: str):
     if not scheduler.get_job(job_id):
         scheduler.add_job(scheduled_job_wrapper, 'interval', days=1, args=[user_email], id=job_id)
         print(f"SCHEDULER: Scheduled daily email scan for {user_email}.")
+

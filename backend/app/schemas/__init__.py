@@ -1,6 +1,8 @@
 from .user import (
-    UserCreate,
-    UserResponse,
-    ConnectAccountRequest,
-    ImportantUpdateResponse,
+    UserCreate, 
+    UserResponse, 
+    StoreTokenRequest,     
+    ImportantUpdateResponse
 )
+# REMOVED: ConnectAccountRequest
+from .chat import ChatRequest, ChatResponse

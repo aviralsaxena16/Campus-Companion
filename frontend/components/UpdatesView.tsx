@@ -1,6 +1,7 @@
 "use client"
 import React, { useState, useEffect } from "react"
-import { useSession } from "next-auth/react"
+// --- 1. Import useAuth using the correct path alias ---
+import { useAuth } from "@/context/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Loader2, MailCheck } from "lucide-react"
@@ -14,33 +15,64 @@ interface Update {
 }
 
 export default function UpdatesView() {
-  const { data: session } = useSession()
+  // --- 2. Use the useAuth hook ---
+  const { session, isFullyAuthenticated, requestProtectedAccess } = useAuth()
   const [updates, setUpdates] = useState<Update[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isScanning, setIsScanning] = useState(false)
 
   useEffect(() => {
-    if (session?.user?.email) {
+    // --- 3. Check for full auth and the access token ---
+    if (isFullyAuthenticated && session && session.accessToken) {
       setIsLoading(true)
-      fetch(`http://127.0.0.1:8000/api/updates/${session.user.email}`)
-        .then((res) => res.json())
+      // --- 4. Call the new, protected endpoint ---
+      fetch("http://127.0.0.1:8000/api/updates", {
+        headers: {
+          // --- 5. Add the Authorization header ---
+          "Authorization": `Bearer ${session.accessToken}`
+        }
+      })
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json()
+        })
         .then((data) => {
           setUpdates(data)
           setIsLoading(false)
         })
-        .catch(() => setIsLoading(false))
+        .catch((err) => {
+          console.error("Failed to fetch updates:", err)
+          setIsLoading(false)
+        })
     }
-  }, [session])
+  // --- 6. Add accessToken to the dependency array ---
+  }, [session, isFullyAuthenticated])
 
   const handleScanNow = async () => {
-    if (!session?.user?.email) return
+    // --- 7. Check for auth first ---
+    if (!isFullyAuthenticated || !session || !session.accessToken) {
+      requestProtectedAccess()
+      return
+    }
+
     setIsScanning(true)
     try {
       const res = await fetch("http://127.0.0.1:8000/api/updates/scan_now", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_email: session.user.email }),
+        headers: {
+          "Content-Type": "application/json",
+          // --- 8. Add the Authorization header ---
+          "Authorization": `Bearer ${session.accessToken}`
+        },
+        // --- 9. Remove the body (backend gets user from token) ---
       })
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
       const data = await res.json()
       setUpdates(data)
     } catch (error) {
@@ -53,14 +85,14 @@ export default function UpdatesView() {
 
   return (
     <div className="flex flex-col h-full bg-white text-black">
-      {/* FIXED: Removed fixed height, added doodle styles */}
       <header className="flex items-center ml-6 justify-between border-b-2 border-black bg-white p-4 flex-wrap">
         <h1 className="text-3xl font-bold" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
           Important Updates
         </h1>
         <Button
           onClick={handleScanNow}
-          disabled={isScanning}
+          // --- 10. Disable if scanning OR not authenticated ---
+          disabled={isScanning || !isFullyAuthenticated}
           style={{ fontFamily: "'Luckiest Guy', cursive", boxShadow: "2px 2px 0px #000" }}
           className="bg-orange-500 text-white border-2 border-black rounded-xl px-6 py-2 text-base hover:bg-orange-600 mt-2 sm:mt-0"
         >
@@ -80,7 +112,6 @@ export default function UpdatesView() {
             A curated list of important updates from your agent's scheduled email scans.
           </p>
 
-          {/* ADDED: New title for the updates list */}
           <h2 className="text-4xl font-bold mb-6" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
             Your Mail Updates
           </h2>
@@ -88,30 +119,28 @@ export default function UpdatesView() {
           <div className="space-y-6">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center text-center p-8 border-4 border-dashed border-gray-300 rounded-2xl">
-                 <Loader2 className="h-12 w-12 animate-spin text-orange-500 mb-4" />
-                 <p className="text-xl font-bold" style={{fontFamily: "'Baloo 2', cursive"}}>Loading updates...</p>
+                   <Loader2 className="h-12 w-12 animate-spin text-orange-500 mb-4" />
+                   <p className="text-xl font-bold" style={{fontFamily: "'Baloo 2', cursive"}}>Loading updates...</p>
               </div>
             ) : updates.length > 0 ? (
               updates.map((update) => (
-                // STYLED: Update cards now use the doodle theme
-                 <Card key={update.id} className="border-2 border-black rounded-2xl shadow-[2px_2px_0px_#000] bg-white">
-                  <CardHeader>
-                    <CardTitle className="text-xl font-bold" style={{ fontFamily: "'Baloo 2', cursive" }}>
-                      {update.title}
-                    </CardTitle>
-                    <CardDescription className="text-sm text-gray-600" style={{ fontFamily: "'Baloo 2', cursive" }}>
-                      Found {formatDistanceToNow(new Date(update.discovered_at), { addSuffix: true })}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-800" style={{ fontFamily: "'Baloo 2', cursive" }}>
-                      {update.summary}
-                    </p>
-                  </CardContent>
-                </Card>
+                   <Card key={update.id} className="border-2 border-black rounded-2xl shadow-[2px 2px 0px #000] bg-white">
+                   <CardHeader>
+                     <CardTitle className="text-xl font-bold" style={{ fontFamily: "'Baloo 2', cursive" }}>
+                       {update.title}
+                     </CardTitle>
+                     <CardDescription className="text-sm text-gray-600" style={{ fontFamily: "'Baloo 2', cursive" }}>
+                       Found {formatDistanceToNow(new Date(update.discovered_at), { addSuffix: true })}
+                     </CardDescription>
+                   </CardHeader>
+                   <CardContent>
+                     <p className="text-gray-800" style={{ fontFamily: "'Baloo 2', cursive" }}>
+                       {update.summary}
+                     </p>
+                   </CardContent>
+                 </Card>
               ))
             ) : (
-              // STYLED: Empty state card now uses the doodle theme
               <Card className="text-center p-8 border-4 border-dashed border-gray-300 rounded-2xl">
                 <CardHeader className="flex flex-col items-center">
                     <MailCheck className="h-12 w-12 text-orange-500 mb-4" />
@@ -132,3 +161,4 @@ export default function UpdatesView() {
     </div>
   )
 }
+

@@ -1,8 +1,7 @@
-// In your ChatSection component file
-
 "use client"
 import React, { useState, useRef, useEffect, type FormEvent } from "react"
-import { useSession } from "next-auth/react" // We still use this to get the session data
+// We use the 'useAuth' hook which is the correct way
+import { useAuth } from "../context/AuthContext"
 import { Send, Bot, User, Link as LinkIcon, Paperclip, Loader2, X, Check, Zap, Terminal, CheckCircle2 } from "lucide-react"
 import { createParser, type EventSourceMessage } from "eventsource-parser"
 import { Input } from "@/components/ui/input"
@@ -20,7 +19,9 @@ interface PlanStep {
 }
 
 export default function ChatSection() {
-  const { data: session } = useSession() // The session object NOW CONTAINS session.accessToken
+  // We use our 'useAuth' hook, not 'useSession'
+  const { session, status, requestProtectedAccess, isFullyAuthenticated } = useAuth()
+  
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -47,12 +48,13 @@ export default function ChatSection() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages, planSteps])
 
-  // ... (Your existing handleFileUpload API handler remains unchanged)
-  // But you should consider adding the Authorization header to it as well
-  // if uploading files requires auth on your backend.
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
-    if (!file || !session?.accessToken) return
+    // Use the session from useAuth
+    if (!file || !session?.accessToken) {
+      requestProtectedAccess()
+      return
+    }
     
     setIsLoading(true)
     const formData = new FormData()
@@ -61,7 +63,6 @@ export default function ChatSection() {
       const response = await fetch("http://127.0.0.1:8000/api/files/upload", {
         method: "POST",
         headers: {
-          // Add auth to file upload as well
           "Authorization": `Bearer ${session.accessToken}`
         },
         body: formData,
@@ -69,28 +70,25 @@ export default function ChatSection() {
       const data = await response.json()
       if (response.ok) {
         setUploadedFilePath(data.file_path)
-        alert(`File "${file.name}" uploaded successfully! You can now ask questions about it.`)
+        // You can add a toast notification here
       } else {
         throw new Error(data.detail || "File upload failed")
       }
     } catch (error) {
       console.error("File upload error:", error)
-      alert((error as Error).message)
     } finally {
       setIsLoading(false)
       if (fileInputRef.current) fileInputRef.current.value = ""
     }
   }
   
-  // REMOVED: handleConnectGoogle function is no longer needed.
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     let currentInput = input
     
-    // The Sidebar already protects this view, but this is a good safeguard.
-    if (!currentInput.trim() || !session?.user?.email || !session?.accessToken) {
-      alert("Authentication error. Please try signing in again.")
+    // Check for auth using our hook
+    if (!currentInput.trim() || !session?.accessToken) {
+      requestProtectedAccess()
       return
     }
 
@@ -112,13 +110,14 @@ export default function ChatSection() {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
-        // ** THIS IS THE KEY CHANGE **
-        // Send the Google access token to your FastAPI backend
+        // The endpoint is protected by this HEADER token
         "Authorization": `Bearer ${session.accessToken}` 
       },
       body: JSON.stringify({ 
         message: currentInput, 
-        user_email: session.user.email // You can still send this if your backend uses it
+        // --- THIS IS THE NEW FIELD ---
+        // We pass the access token in the BODY for the AGENT to use
+        access_token: session.accessToken
       }),
     })
 
@@ -174,17 +173,15 @@ export default function ChatSection() {
     setIsLoading(false)
   }
 
+  // ... (Your JSX remains unchanged) ...
   return (
     <div className="flex h-screen flex-col bg-white text-black">
       <header className="ml-8 flex shrink-0 items-center justify-between border-b-2 border-black p-4">
         <h1 className="text-3xl font-bold" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
           Agent Chat
         </h1>
-        {/* REMOVED the "Connect Google Account" button. */}
       </header>
       
-      {/* ... (The rest of your JSX for messages, input form, and plan aside) ... */}
-      {/* ... (This all remains unchanged) ... */}
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-1 flex-col">
           <div className="flex-1 space-y-6 overflow-y-auto p-4 md:p-6">
@@ -214,7 +211,6 @@ export default function ChatSection() {
             onSubmit={handleSubmit}
             className="relative ml-8 flex shrink-0 items-center gap-2 border-t-2 border-black bg-white p-4"
           >
-            {/* Hidden file input for upload */}
             <input
               type="file"
               ref={fileInputRef}
@@ -241,10 +237,10 @@ export default function ChatSection() {
               </div>
             ) : (
               <>
-                <Button type="button" size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={isLoading || !session} title="Attach File" className="rounded-full hover:bg-orange-100">
+                <Button type="button" size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={isLoading || !isFullyAuthenticated} title="Attach File" className="rounded-full hover:bg-orange-100">
                   <Paperclip className="h-6 w-6" />
                 </Button>
-                <Button type="button" variant="ghost" onClick={startAttachLink} size="icon" title="Attach link" className="rounded-full hover:bg-orange-100" disabled={isLoading || !session}>
+                <Button type="button" variant="ghost" onClick={startAttachLink} size="icon" title="Attach link" className="rounded-full hover:bg-orange-100" disabled={isLoading || !isFullyAuthenticated}>
                   <LinkIcon className="h-6 w-6" />
                 </Button>
 
@@ -260,7 +256,7 @@ export default function ChatSection() {
                   placeholder="Ask your agent..."
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  disabled={!session || isLoading}
+                  disabled={!isFullyAuthenticated || isLoading}
                   style={{ fontFamily: "'Baloo 2', cursive" }}
                   className="flex-1 rounded-full border-2 border-black px-5 py-6 text-base focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
                 />
@@ -268,7 +264,7 @@ export default function ChatSection() {
                   type="submit"
                   size="icon"
                   className="h-12 w-12 rounded-full border-2 border-black bg-orange-500 shadow-[2px_2px_0px_#000] hover:bg-orange-600"
-                  disabled={!session || isLoading || !input.trim()}
+                  disabled={!isFullyAuthenticated || isLoading || !input.trim()}
                   title="Send message"
                 >
                   {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Send className="h-6 w-6" />}
@@ -278,7 +274,6 @@ export default function ChatSection() {
           </form>
         </div>
         <aside className="hidden w-80 shrink-0 border-l-2 border-black bg-orange-50 p-4 lg:flex flex-col">
-          {/* ... (Plan aside is unchanged) ... */}
           <Card className="h-full border-4 border-black bg-white shadow-[4px_4px_0px_#000] rounded-2xl">
             <CardHeader>
               <CardTitle className="text-2xl" style={{ fontFamily: "'Luckiest Guy', cursive" }}>

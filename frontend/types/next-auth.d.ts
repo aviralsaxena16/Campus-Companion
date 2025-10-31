@@ -1,5 +1,3 @@
-// In frontend/types/next-auth.d.ts
-
 import NextAuth, { DefaultSession } from "next-auth"
 import { JWT } from "next-auth/jwt"
 
@@ -11,6 +9,9 @@ declare module "next-auth" {
     accessToken?: string
     error?: string // For handling token refresh errors
     user: DefaultSession["user"]
+    
+    // --- ADD THIS LINE ---
+    refreshToken?: string
   }
 }
 
