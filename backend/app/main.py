@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.endpoints import chat, user, updates, files
 from app.database import engine
-from app import models # <-- IMPORT MODELS
+from app import models
 from contextlib import asynccontextmanager
 from app.services.scheduler_service import scheduler
 
@@ -19,7 +19,7 @@ from app.services.scheduler_service import scheduler
 async def lifespan(app: FastAPI):
     # This code runs on startup
     print("Application startup: Creating database tables...")
-    models.Base.metadata.create_all(bind=engine) # <-- MOVED HERE
+    models.Base.metadata.create_all(bind=engine)
     print("Application startup: Starting scheduler...")
     scheduler.start()
     yield
@@ -43,14 +43,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# REMOVED: models.Base.metadata.create_all(bind=engine)
-# This is now correctly handled in the lifespan manager to avoid race conditions.
-
 app.include_router(chat.router, prefix="/api")
 app.include_router(user.router, prefix="/api")
 app.include_router(updates.router, prefix="/api")
 app.include_router(files.router, prefix="/api")
 
-@app.get("/")
+# --- THIS IS THE FIX ---
+# Change @app.get("/") to @app.api_route(...)
+# This will accept Render's "HEAD" health check
+@app.api_route("/", methods=["GET", "HEAD"])
 def read_root():
     return {"message": "Backend is connected and running!"}
