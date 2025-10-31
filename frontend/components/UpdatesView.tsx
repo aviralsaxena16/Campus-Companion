@@ -113,7 +113,7 @@ export default function UpdatesView() {
       <div className="flex-1 overflow-y-auto p-4 md:p-8">
         <div className="w-full max-w-4xl mx-auto">
           <p className="text-gray-800 mb-4 text-lg" style={{ fontFamily: "'Baloo 2', cursive" }}>
-            A curated list of important updates from your agent's scheduled email scans.
+            A curated list of important updates from your agent&apos;s scheduled email scans.
           </p>
 
           <h2 className="text-4xl font-bold mb-6" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
@@ -154,7 +154,7 @@ export default function UpdatesView() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-800" style={{ fontFamily: "'Baloo 2', cursive" }}>
-                    No important updates were found. Click "Scan Emails Now" to check again.
+                    No important updates were found. Click &quot;Scan Emails Now&quot; to check again.
                   </p>
                 </CardContent>
               </Card>

@@ -1,15 +1,20 @@
 "use client"
 import React, { useState, useRef, type FormEvent } from "react"
-// 1. Import useAuth, not useSession
-import { useAuth } from "../context/AuthContext" 
+import { useAuth } from "@/context/AuthContext" 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Download, Edit, Save, XCircle, Loader2, CheckCircle2, Plus, Trash2 } from "lucide-react"
 import jsPDF from "jspdf"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-// 2. Add this import for the streaming parser
 import { createParser, type EventSourceMessage } from "eventsource-parser"
+
+
+// --- FIX: Get Prop types directly from React components ---
+type CustomButtonProps = React.ComponentProps<typeof Button>
+type CustomInputProps = React.ComponentProps<typeof Input>
+type CustomTextareaProps = React.ComponentProps<typeof Textarea>
+
 
 interface RoadmapStep {
   title: string
@@ -20,9 +25,11 @@ interface Roadmap {
   steps: RoadmapStep[]
   error?: string
 }
+// --- FIX: Create a type for the raw JSON data ---
+type JsonData = Record<string, unknown>;
 
-// ... (PrimaryButton, SecondaryButton, DoodleInput, DoodleTextarea components are all unchanged) ...
-const PrimaryButton = ({ children, ...props }: any) => (
+
+const PrimaryButton = ({ children, ...props }: CustomButtonProps) => (
   <Button
     {...props}
     style={{ fontFamily: "'Luckiest Guy', cursive", boxShadow: "2px 2px 0px #000" }}
@@ -32,7 +39,8 @@ const PrimaryButton = ({ children, ...props }: any) => (
   </Button>
 )
 
-const SecondaryButton = ({ children, ...props }: any) => (
+
+const SecondaryButton = ({ children, ...props }: CustomButtonProps) => (
   <Button
     {...props}
     variant="outline"
@@ -43,7 +51,8 @@ const SecondaryButton = ({ children, ...props }: any) => (
   </Button>
 )
 
-const DoodleInput = ({ ...props }: any) => (
+
+const DoodleInput = (props: CustomInputProps) => (
   <Input
     {...props}
     style={{ fontFamily: "'Baloo 2', cursive" }}
@@ -51,13 +60,15 @@ const DoodleInput = ({ ...props }: any) => (
   />
 )
 
-const DoodleTextarea = ({ ...props }: any) => (
+
+const DoodleTextarea = (props: CustomTextareaProps) => (
   <Textarea
     {...props}
     style={{ fontFamily: "'Baloo 2', cursive" }}
     className="border-2 border-black rounded-xl focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 text-sm"
   />
 )
+
 
 export default function AdvisorView() {
   const { session, isFullyAuthenticated, requestProtectedAccess } = useAuth()
@@ -69,97 +80,106 @@ export default function AdvisorView() {
   const roadmapRef = useRef<HTMLDivElement>(null)
   const [isDownloading, setIsDownloading] = useState(false)
 
-  // --- THIS IS THE UPDATED FUNCTION ---
+
   const parseRoadmapResponse = (response: string): Roadmap | null => {
     try {
       console.log("[v0] Raw response:", response)
-      let parsedData
+      let parsedData: JsonData;
+
 
       try {
-        parsedData = JSON.parse(response)
+        parsedData = JSON.parse(response) as JsonData
       } catch {
         const cleanedResponse = response
-          .replace(/```json\s*/g, "")
           .replace(/```\s*$/g, "")
           .trim()
         const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/)
         if (!jsonMatch) {
           throw new Error("No JSON object found in response")
         }
-        parsedData = JSON.parse(jsonMatch[0])
+        parsedData = JSON.parse(jsonMatch[0]) as JsonData
       }
+
 
       console.log("[v0] Parsed data:", parsedData)
 
-      // --- THIS IS THE FIX ---
-      // The agent wraps the tool's JSON output in a key named after the tool.
-      // We need to unwrap it here.
-      const roadmapJson = parsedData.advisor_tool_response 
-                            ? parsedData.advisor_tool_response 
+
+      const roadmapJson: JsonData = (parsedData.advisor_tool_response && typeof parsedData.advisor_tool_response === 'object')
+                            ? parsedData.advisor_tool_response as JsonData
                             : parsedData;
-      // --- END OF FIX ---
+
 
       let roadmapData: Roadmap
 
-      // All logic below now uses 'roadmapJson' instead of 'parsedData'
-      if (roadmapJson.goal && roadmapJson.steps) {
-        roadmapData = roadmapJson as Roadmap
-      } else if (roadmapJson.title && roadmapJson.stages) {
-        const steps: RoadmapStep[] = roadmapJson.stages.map((stage: any, index: number) => {
+
+      if (typeof roadmapJson.goal === 'string' && Array.isArray(roadmapJson.steps)) {
+        roadmapData = {
+          goal: roadmapJson.goal,
+          steps: roadmapJson.steps as RoadmapStep[]
+        }
+      } else if (typeof roadmapJson.title === 'string' && Array.isArray(roadmapJson.stages)) {
+        const steps: RoadmapStep[] = roadmapJson.stages.map((stage: unknown, index: number) => {
+          const stageData = stage as JsonData;
           const tasks: string[] = []
-          if (Array.isArray(stage.topics)) { tasks.push(...stage.topics) }
-          if (Array.isArray(stage.tasks)) { tasks.push(...stage.tasks) }
-          if (Array.isArray(stage.content)) { tasks.push(...stage.content) }
-          if (stage.duration) { tasks.unshift(`Duration: ${stage.duration}`) }
-          if (Array.isArray(stage.resources) && stage.resources.length > 0) {
+          if (Array.isArray(stageData.topics)) { tasks.push(...stageData.topics) }
+          if (Array.isArray(stageData.tasks)) { tasks.push(...stageData.tasks) }
+          if (Array.isArray(stageData.content)) { tasks.push(...stageData.content) }
+          if (stageData.duration) { tasks.unshift(`Duration: ${stageData.duration}`) }
+          if (Array.isArray(stageData.resources) && stageData.resources.length > 0) {
             tasks.push("Resources:")
-            tasks.push(...stage.resources.map((resource: string) => `• ${resource}`))
+            tasks.push(...stageData.resources.map((resource: string) => `• ${resource}`))
           }
           return {
-            title: stage.name || stage.title || `Stage ${index + 1}`,
-            tasks: tasks.length > 0 ? tasks : [`Complete ${stage.name || `Stage ${index + 1}`}`],
+            title: String(stageData.name || stageData.title || `Stage ${index + 1}`),
+            tasks: tasks.length > 0 ? tasks : [`Complete ${String(stageData.name || `Stage ${index + 1}`)}`],
           }
         })
         if (Array.isArray(roadmapJson.additional_tips) && roadmapJson.additional_tips.length > 0) {
           steps.push({
             title: "Additional Tips",
-            tasks: roadmapJson.additional_tips,
+            tasks: roadmapJson.additional_tips as string[],
           })
         }
         roadmapData = { goal: roadmapJson.title, steps: steps }
-      } else if (roadmapJson.title && roadmapJson.timeline) {
-        const steps: RoadmapStep[] = Object.values(roadmapJson.timeline).map((phase: any) => ({
-          title: phase.name || phase.title,
-          tasks: phase.tasks || phase.topics || [],
-        }))
+      } else if (typeof roadmapJson.title === 'string' && typeof roadmapJson.timeline === 'object' && roadmapJson.timeline !== null) {
+        const steps: RoadmapStep[] = Object.values(roadmapJson.timeline).map((phase: unknown) => {
+          const phaseData = phase as JsonData;
+          return {
+            title: String(phaseData.name || phaseData.title),
+            tasks: (phaseData.tasks || phaseData.topics || []) as string[],
+          }
+        })
         roadmapData = { goal: roadmapJson.title, steps: steps }
       } else {
-        const goal = roadmapJson.title || roadmapJson.goal || roadmapJson.name || "Learning Plan"
+        const goal = String(roadmapJson.title || roadmapJson.goal || roadmapJson.name || "Learning Plan")
         const steps: RoadmapStep[] = []
         const stepsData = roadmapJson.steps || roadmapJson.stages || roadmapJson.phases || roadmapJson.timeline
 
+
         if (Array.isArray(stepsData)) {
-          stepsData.forEach((item: any, index: number) => {
+          stepsData.forEach((item: unknown, index: number) => {
+            const itemData = item as JsonData;
             const tasks: string[] = []
-            if (Array.isArray(item.tasks)) { tasks.push(...item.tasks) }
-            if (Array.isArray(item.topics)) { tasks.push(...item.topics) }
-            if (Array.isArray(item.content)) { tasks.push(...item.content) }
-            if (item.description) { tasks.push(item.description) }
+            if (Array.isArray(itemData.tasks)) { tasks.push(...itemData.tasks) }
+            if (Array.isArray(itemData.topics)) { tasks.push(...itemData.topics) }
+            if (Array.isArray(itemData.content)) { tasks.push(...itemData.content) }
+            if (itemData.description) { tasks.push(String(itemData.description)) }
             steps.push({
-              title: item.title || item.name || `Step ${index + 1}`,
-              tasks: tasks.length > 0 ? tasks : [`Complete ${item.title || item.name || `Step ${index + 1}`}`],
+              title: String(itemData.title || itemData.name || `Step ${index + 1}`),
+              tasks: tasks.length > 0 ? tasks : [`Complete ${String(itemData.title || itemData.name || `Step ${index + 1}`)}`],
             })
           })
-        } else if (typeof stepsData === "object") {
-          Object.values(stepsData).forEach((item: any, index: number) => {
+        } else if (typeof stepsData === "object" && stepsData !== null) {
+          Object.values(stepsData).forEach((item: unknown, index: number) => {
+            const itemData = item as JsonData;
             const tasks: string[] = []
-            if (Array.isArray(item.tasks)) { tasks.push(...item.tasks) }
-            if (Array.isArray(item.topics)) { tasks.push(...item.topics) }
-            if (Array.isArray(item.content)) { tasks.push(...item.content) }
-            if (item.description) { tasks.push(item.description) }
+            if (Array.isArray(itemData.tasks)) { tasks.push(...itemData.tasks) }
+            if (Array.isArray(itemData.topics)) { tasks.push(...itemData.topics) }
+            if (Array.isArray(itemData.content)) { tasks.push(...itemData.content) }
+            if (itemData.description) { tasks.push(String(itemData.description)) }
             steps.push({
-              title: item.title || item.name || `Step ${index + 1}`,
-              tasks: tasks.length > 0 ? tasks : [`Complete ${item.title || item.name || `Step ${index + 1}`}`],
+              title: String(itemData.title || itemData.name || `Step ${index + 1}`),
+              tasks: tasks.length > 0 ? tasks : [`Complete ${String(itemData.title || itemData.name || `Step ${index + 1}`)}`],
             })
           })
         }
@@ -169,10 +189,12 @@ export default function AdvisorView() {
         roadmapData = { goal, steps }
       }
 
+
       roadmapData.steps = roadmapData.steps.map((step) => ({
         ...step,
         tasks: Array.isArray(step.tasks) ? step.tasks.map(task => String(task)).filter((task) => typeof task === "string") : [],
       }))
+
 
       console.log("[v0] Final roadmap data:", roadmapData)
       return roadmapData
@@ -184,13 +206,14 @@ export default function AdvisorView() {
         steps: [
           {
             title: "Parsing Error",
-            tasks: ["Sorry, I couldn't parse the roadmap. The AI returned an unexpected format. Please try again."],
+            tasks: ["Sorry, I couldn&apos;t parse the roadmap. The AI returned an unexpected format. Please try again."],
           },
         ],
         error: "Failed to parse response",
       }
     }
   }
+
 
 
   const handleSubmit = async (e: FormEvent) => {
@@ -223,6 +246,7 @@ export default function AdvisorView() {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
+
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
       const parser = createParser({
@@ -236,9 +260,12 @@ export default function AdvisorView() {
                 throw new Error("Agent returned an empty response.")
               }
 
+
               const parsedRoadmap = parseRoadmapResponse(roadmapJsonString)
               setRoadmap(parsedRoadmap)
-              setEditedRoadmap(JSON.parse(JSON.stringify(parsedRoadmap)))
+              if (parsedRoadmap) {
+                setEditedRoadmap(JSON.parse(JSON.stringify(parsedRoadmap)))
+              }
             } else if (event.event === "tool_start") {
               console.log("Advisor agent started tool:", JSON.parse(event.data))
             } else if (event.event === "error") {
@@ -248,12 +275,13 @@ export default function AdvisorView() {
             console.error("Streaming parse error:", e)
             setRoadmap({
               goal,
-              steps: [{ title: "Parsing Error", tasks: ["The agent's response was not in the correct format."] }],
+              steps: [{ title: "Parsing Error", tasks: ["The agent&apos;s response was not in the correct format."] }],
               error: (e as Error).message,
             })
           }
         },
       })
+
 
       while (true) {
         const { done, value } = await reader.read()
@@ -262,11 +290,12 @@ export default function AdvisorView() {
         parser.feed(chunk)
       }
 
+
     } catch (error) {
       console.error("Advisor API error:", error)
       setRoadmap({
         goal,
-        steps: [{ title: "Connection Error", tasks: ["Sorry, I couldn't generate a roadmap right now."] }],
+        steps: [{ title: "Connection Error", tasks: ["Sorry, I couldn&apos;t generate a roadmap right now."] }],
         error: (error as Error).message,
       })
     } finally {
@@ -274,13 +303,14 @@ export default function AdvisorView() {
     }
   }
 
-  // ... (handleEditChange, handlePhaseTitleChange, handleSaveChanges functions are unchanged) ...
+
   const handleEditChange = (phaseIndex: number, taskIndex: number, value: string) => {
     if (!editedRoadmap) return
     const newRoadmap = { ...editedRoadmap }
     newRoadmap.steps[phaseIndex].tasks[taskIndex] = value
     setEditedRoadmap(newRoadmap)
   }
+
 
   const handlePhaseTitleChange = (phaseIndex: number, value: string) => {
     if (!editedRoadmap) return
@@ -289,24 +319,28 @@ export default function AdvisorView() {
     setEditedRoadmap(newRoadmap)
   }
 
+
   const handleSaveChanges = () => {
     setRoadmap(editedRoadmap)
     setIsEditing(false)
   }
 
-  // ... (handleDownloadPdf function is unchanged) ...
+
   const handleDownloadPdf = async () => {
     if (!roadmap) return;
     setIsDownloading(true);
+
 
     try {
       const doc = new jsPDF();
       let yPosition = 20; 
 
+
       doc.setFont("helvetica", "bold");
       doc.setFontSize(22);
       doc.text(roadmap.goal, 105, yPosition, { align: "center" });
       yPosition += 15;
+
 
       roadmap.steps.forEach((step, stepIndex) => {
         if (yPosition > 25) {
@@ -317,10 +351,12 @@ export default function AdvisorView() {
           yPosition = 20;
         }
 
+
         doc.setFont("helvetica", "bold");
         doc.setFontSize(16);
         doc.text(`Step ${stepIndex + 1}: ${step.title}`, 15, yPosition);
         yPosition += 10;
+
 
         doc.setFont("helvetica", "normal");
         doc.setFontSize(12);
@@ -334,6 +370,7 @@ export default function AdvisorView() {
           yPosition += (splitTask.length * 5) + 3; 
         });
 
+
         if (stepIndex < roadmap.steps.length - 1) {
            yPosition += 5;
            doc.line(15, yPosition, 195, yPosition); 
@@ -341,7 +378,9 @@ export default function AdvisorView() {
         }
       });
 
+
       doc.save(`${roadmap.goal.replace(/\s+/g, "_") || "roadmap"}.pdf`);
+
 
     } catch (error) {
       console.error("Simple PDF generation failed:", error);
@@ -351,7 +390,7 @@ export default function AdvisorView() {
     }
   };
 
-  // ... (handleAddTask, handleRemoveTask, handleAddStep functions are unchanged) ...
+
   const handleAddTask = (stepIndex: number) => {
     if (!editedRoadmap) return
     const newRoadmap = { ...editedRoadmap }
@@ -359,12 +398,14 @@ export default function AdvisorView() {
     setEditedRoadmap(newRoadmap)
   }
 
+
   const handleRemoveTask = (stepIndex: number, taskIndex: number) => {
     if (!editedRoadmap) return
     const newRoadmap = { ...editedRoadmap }
     newRoadmap.steps[stepIndex].tasks.splice(taskIndex, 1)
     setEditedRoadmap(newRoadmap)
   }
+
 
   const handleAddStep = () => {
     if (!editedRoadmap) return
@@ -376,7 +417,7 @@ export default function AdvisorView() {
     setEditedRoadmap(newRoadmap)
   }
 
-  // ... (Your entire JSX return block is unchanged) ...
+
   return (
     <div className="flex flex-col h-full bg-white text-black">
       <header className="flex items-center ml-8 border-b-2 border-black bg-white p-4 justify-between flex-wrap">
@@ -421,7 +462,7 @@ export default function AdvisorView() {
           </p>
           <form onSubmit={handleSubmit} className="flex items-center gap-2 mb-8">
             <DoodleInput
-              placeholder="e.g., 'Prepare for Google Summer of Code'"
+              placeholder="e.g., &apos;Prepare for Google Summer of Code&apos;"
               value={goal}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGoal(e.target.value)}
               disabled={isLoading}
@@ -438,6 +479,7 @@ export default function AdvisorView() {
               )}
             </PrimaryButton> 
           </form>
+
 
           <div ref={roadmapRef} className="bg-white">
             {roadmap && (

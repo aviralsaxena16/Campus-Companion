@@ -1,4 +1,4 @@
-import NextAuth, { type AuthOptions, User } from "next-auth"
+import NextAuth, { type AuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import { JWT } from "next-auth/jwt"
 
@@ -83,7 +83,6 @@ export const authOptions: AuthOptions = {
       }
 
       // Access token has expired, try to update it
-      // ** THIS IS THE NEW LOGIC **
       if (token.refreshToken) {
         return refreshAccessToken(token)
       }
@@ -94,7 +93,12 @@ export const authOptions: AuthOptions = {
 
     async session({ session, token }) {
       if (token) {
-        session.user = token.user as any // Be careful with 'any' in production
+        // --- THIS IS THE FIX for 'any' ---
+        // We check if token.user exists before assigning it.
+        if (token.user) {
+          session.user = token.user;
+        }
+        // ---
         session.accessToken = token.accessToken
         session.error = token.error
         session.refreshToken = token.refreshToken
