@@ -4,6 +4,9 @@ import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { HuggingFaceInferenceEmbeddings } from "@langchain/community/embeddings/hf";
 import { type Document } from "@langchain/core/documents";
+import fs from "fs/promises";
+import path from "path";
+import os from "os";
 
 export const maxDuration = 60;
 export const runtime = "nodejs";
@@ -34,11 +37,18 @@ export async function POST(req: Request) {
 
     console.log(`📄 Processing file: ${file.name}`);
 
+    // --- Save uploaded file temporarily (fixes first-run read errors)
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "pdf-upload-"));
+    const tempPath = path.join(tempDir, file.name);
+    const arrayBuffer = await file.arrayBuffer();
+    await fs.writeFile(tempPath, Buffer.from(arrayBuffer));
+
     // --- Load and split PDF ---
-    const loader = new PDFLoader(file);
+    const loader = new PDFLoader(tempPath);
     const docs = await loader.load();
+
     if (!docs.length) {
-      return NextResponse.json({ error: "Could not parse text from PDF" }, { status: 400 });
+      throw new Error("Could not parse any text from PDF");
     }
 
     const splitter = new RecursiveCharacterTextSplitter({
@@ -56,7 +66,7 @@ export async function POST(req: Request) {
         user_id: userEmail,
         file_name: file.name,
         chunk_index: i,
-        uploaded_at: uploadedAt, // ✅ added timestamp
+        uploaded_at: uploadedAt,
       },
     }));
 
@@ -64,7 +74,7 @@ export async function POST(req: Request) {
 
     // --- Generate embeddings ---
     const contents = docsWithMetadata.map((doc) => doc.pageContent);
-    console.log(`Embedding ${contents.length} chunks...`);
+    console.log(`⚙️ Generating embeddings for ${contents.length} chunks...`);
     const doc_embeddings = await embeddings.embedDocuments(contents);
 
     // --- Prepare data for Supabase ---
@@ -76,11 +86,35 @@ export async function POST(req: Request) {
       metadata: doc.metadata,
     }));
 
-    console.log(`Storing ${data_to_insert.length} vectors in Supabase...`);
-    const { error } = await supabase.from("documents").insert(data_to_insert);
-    if (error) throw new Error(`Supabase insert error: ${error.message}`);
+    console.log(`🗃️ Storing ${data_to_insert.length} vectors in Supabase...`);
+
+    // --- Retry logic for Supabase insert ---
+    let attempt = 0;
+    const maxAttempts = 3;
+    let insertError = null;
+
+    while (attempt < maxAttempts) {
+      const { error } = await supabase.from("documents").insert(data_to_insert);
+      if (!error) {
+        insertError = null;
+        break;
+      }
+      insertError = error;
+      attempt++;
+      console.warn(`⚠️ Supabase insert attempt ${attempt} failed: ${error.message}`);
+      await new Promise((res) => setTimeout(res, 1000 * attempt)); // exponential backoff
+    }
+
+    if (insertError) {
+      throw new Error(`Supabase insert failed after ${maxAttempts} attempts: ${insertError.message}`);
+    }
 
     console.log("✅ Successfully stored documents.");
+
+    // --- Clean up temporary file ---
+    await fs.unlink(tempPath).catch(() => {});
+    await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+
     return NextResponse.json({
       message: "File processed and stored successfully",
       file_name: file.name,
