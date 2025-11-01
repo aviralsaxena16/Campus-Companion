@@ -1,8 +1,0 @@
-Ignore the entire backend folder and its contents
-
-backend/
-
-Ignore any local virtual environments
-
-venv/
-.venv/
