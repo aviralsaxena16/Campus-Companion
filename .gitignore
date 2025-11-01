@@ -13,3 +13,4 @@ backend/token.json
 backend/credentials.json
 backend/venv
 backend/temp_uploads
+.vercel

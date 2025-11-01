@@ -5,11 +5,11 @@ from langchain.tools import BaseTool
 from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers.json import JsonOutputParser
-from langchain_google_genai import ChatGoogleGenerativeAI
 import os
-
-# --- FIX 1: Change to the high-rate-limit model ---
+from langchain_google_genai import ChatGoogleGenerativeAI
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=os.getenv("GOOGLE_API_KEY"), temperature=0)
+
+# ---
 
 class AdvisorInput(BaseModel):
     goal: str = Field(description="The user's goal to create a roadmap for (e.g., 'learn React', 'prepare for the SIH hackathon').")
@@ -19,20 +19,27 @@ class AdvisorTool(BaseTool):
     description: str = "Generates a structured, step-by-step roadmap for a user's goal, such as learning a new skill or preparing for an event. Use this when the user asks for a 'plan', 'roadmap', or 'how to prepare'."
     args_schema: Type[AdvisorInput] = AdvisorInput
 
+    # --- 2. Make the JSON cleaner more robust ---
     def _clean_json_response(self, response_text: str) -> str:
         """Clean and extract JSON from LLM response"""
+        response_text = response_text.strip()
+        
+        # Remove markdown fences first
         response_text = re.sub(r'```json\s*', '', response_text)
         response_text = re.sub(r'```\s*$', '', response_text)
         response_text = response_text.strip()
         
-        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-        if json_match:
-            return json_match.group(0)
+        # Find the first '{' and the last '}'
+        start_index = response_text.find('{')
+        end_index = response_text.rfind('}')
         
-        return response_text
+        if start_index != -1 and end_index != -1 and end_index > start_index:
+            return response_text[start_index:end_index+1]
+        
+        raise ValueError("No valid JSON object found in response text")
+    # ---
 
     async def _arun(self, goal: str):
-        # --- FIX 2: Escape the JSON example with double curly braces ---
         parser_prompt = ChatPromptTemplate.from_template(
             "You are a world-class strategic advisor. Create a detailed roadmap for the user's goal.\n"
             "CRITICAL: Return ONLY a valid JSON object with this EXACT structure:\n"
@@ -120,7 +127,8 @@ class AdvisorTool(BaseTool):
                         "tasks": [
                             "The AI response couldn't be parsed as valid JSON.",
                             "Please try rephrasing your request.",
-                            f"Error details: {str(e)}"
+                            f"Error details: {str(e)}",
+                            f"Raw Response: {response_text[:200]}..." # Add raw response snippet
                         ]
                     }
                 ],

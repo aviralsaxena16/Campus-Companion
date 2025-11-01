@@ -1,64 +1,51 @@
-# In backend/app/agent/tools/rag_tool.py
 import os
 from typing import Type
 from langchain.tools import BaseTool
 from pydantic import BaseModel, Field
-from langchain_community.vectorstores import FAISS
-from langchain_community.document_loaders import PyPDFLoader
-
-# --- CHANGE #1: Import HuggingFace's embedding model ---
-from langchain_huggingface import HuggingFaceEmbeddings
-
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.chains import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
-
-# The LLM for answering the question (this stays the same)
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=os.getenv("GOOGLE_API_KEY"), temperature=0)
+import httpx # Make sure to add 'httpx' to backend/requirements.txt!
 
 class DocumentQueryInput(BaseModel):
-    file_path: str = Field(description="The local server path to the PDF document.")
+    file_path: str = Field(description="The file name of the PDF document to query.")
     query: str = Field(description="The question to ask about the document.")
+    user_email: str = Field(description="The email of the user, e.g., 'user@example.com'.")
 
 class DocumentQueryTool(BaseTool):
     name: str = "document_query_tool"
-    description: str = "Use this tool to answer questions about a specific PDF document that the user has uploaded. You must provide the file_path and a query."
+    description: str = "Use this tool to answer questions about a specific PDF document that the user has uploaded. You must provide the file_path, query, and user_email."
     args_schema: Type[DocumentQueryInput] = DocumentQueryInput
 
-    async def _arun(self, file_path: str, query: str):
+    async def _arun(self, file_path: str, query: str, user_email: str):
+        """
+        Calls the dedicated Vercel RAG server to perform the query.
+        """
         try:
-            if not os.path.exists(file_path):
-                return f"Error: The file at path {file_path} was not found."
+            vercel_url = os.getenv("VERCEL_URL")
+            if not vercel_url:
+                return "Error: VERCEL_URL is not set in the agent environment."
 
-            loader = PyPDFLoader(file_path)
-            docs = loader.load()
-            if not docs: return "Error: Could not load any content from the PDF."
-
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-            split_docs = text_splitter.split_documents(docs)
-
-            # --- CHANGE #2: Use the local HuggingFace embedding model ---
-            # This model is small, fast, and runs entirely on your CPU.
-            embeddings = HuggingFaceEmbeddings(
-                model_name="all-MiniLM-L6-v2"
-            )
+            # Calls https://campus-companion-six.vercel.app/api/query
+            api_endpoint = f"{vercel_url}/api/query"
+            payload = {
+                "file_path": file_path,
+                "query": query,
+                "user_email": user_email
+            }
             
-            vector_store = FAISS.from_documents(split_docs, embeddings)
-            retriever = vector_store.as_retriever()
+            print(f"RAG Tool: Calling Vercel RAG server: {api_endpoint}")
 
-            prompt = ChatPromptTemplate.from_template(
-                "Answer the user's question based only on the following context:\n\n<context>{context}</context>\n\nQuestion: {input}"
-            )
+            async with httpx.AsyncClient() as client:
+                response = await client.post(api_endpoint, json=payload, timeout=60.0)
             
-            document_chain = create_stuff_documents_chain(llm, prompt)
-            retrieval_chain = create_retrieval_chain(retriever, document_chain)
+            response.raise_for_status()
             
-            response = await retrieval_chain.ainvoke({"input": query})
-            return response.get("answer", "I couldn't find an answer in the document.")
+            data = response.json()
+            return data.get("answer", "No answer found from RAG server.")
+
+        except httpx.HTTPStatusError as e:
+            print(f"Error calling RAG server: {e.response.text}")
+            return f"An error occurred while querying the document: {e.response.json().get('detail', 'Query API failed')}"
         except Exception as e:
-            return f"An unexpected error occurred: {e}"
+            return f"An unexpected error occurred during RAG query: {str(e)}"
             
-    def _run(self, file_path: str, query: str):
+    def _run(self, file_path: str, query: str, user_email: str):
         raise NotImplementedError("This tool is async only.")

@@ -1,20 +1,15 @@
 "use client"
 import React, { useState, useRef, type FormEvent } from "react"
+// --- FIX: Use the correct alias path for context ---
 import { useAuth } from "@/context/AuthContext" 
+// --- FIX: Remove incorrect type imports ---
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Download, Edit, Save, XCircle, Loader2, CheckCircle2, Plus, Trash2 } from "lucide-react"
-import jsPDF from "jspdf"
+// import jsPDF from "jspdf" // This will be dynamically imported
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { createParser, type EventSourceMessage } from "eventsource-parser"
-
-
-// --- FIX: Get Prop types directly from React components ---
-type CustomButtonProps = React.ComponentProps<typeof Button>
-type CustomInputProps = React.ComponentProps<typeof Input>
-type CustomTextareaProps = React.ComponentProps<typeof Textarea>
-
 
 interface RoadmapStep {
   title: string
@@ -25,9 +20,12 @@ interface Roadmap {
   steps: RoadmapStep[]
   error?: string
 }
-// --- FIX: Create a type for the raw JSON data ---
 type JsonData = Record<string, unknown>;
 
+// --- FIX: Get Prop types directly from React components ---
+interface CustomButtonProps extends React.ComponentProps<typeof Button> {
+  children: React.ReactNode;
+}
 
 const PrimaryButton = ({ children, ...props }: CustomButtonProps) => (
   <Button
@@ -38,7 +36,6 @@ const PrimaryButton = ({ children, ...props }: CustomButtonProps) => (
     {children}
   </Button>
 )
-
 
 const SecondaryButton = ({ children, ...props }: CustomButtonProps) => (
   <Button
@@ -51,8 +48,7 @@ const SecondaryButton = ({ children, ...props }: CustomButtonProps) => (
   </Button>
 )
 
-
-const DoodleInput = (props: CustomInputProps) => (
+const DoodleInput = (props: React.ComponentProps<typeof Input>) => (
   <Input
     {...props}
     style={{ fontFamily: "'Baloo 2', cursive" }}
@@ -60,15 +56,13 @@ const DoodleInput = (props: CustomInputProps) => (
   />
 )
 
-
-const DoodleTextarea = (props: CustomTextareaProps) => (
+const DoodleTextarea = (props: React.ComponentProps<typeof Textarea>) => (
   <Textarea
     {...props}
     style={{ fontFamily: "'Baloo 2', cursive" }}
     className="border-2 border-black rounded-xl focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 text-sm"
   />
 )
-
 
 export default function AdvisorView() {
   const { session, isFullyAuthenticated, requestProtectedAccess } = useAuth()
@@ -80,17 +74,16 @@ export default function AdvisorView() {
   const roadmapRef = useRef<HTMLDivElement>(null)
   const [isDownloading, setIsDownloading] = useState(false)
 
-
   const parseRoadmapResponse = (response: string): Roadmap | null => {
     try {
       console.log("[v0] Raw response:", response)
       let parsedData: JsonData;
 
-
       try {
         parsedData = JSON.parse(response) as JsonData
       } catch {
         const cleanedResponse = response
+          .replace(/```json\s*/g, "")
           .replace(/```\s*$/g, "")
           .trim()
         const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/)
@@ -100,17 +93,13 @@ export default function AdvisorView() {
         parsedData = JSON.parse(jsonMatch[0]) as JsonData
       }
 
-
       console.log("[v0] Parsed data:", parsedData)
-
 
       const roadmapJson: JsonData = (parsedData.advisor_tool_response && typeof parsedData.advisor_tool_response === 'object')
                             ? parsedData.advisor_tool_response as JsonData
                             : parsedData;
 
-
       let roadmapData: Roadmap
-
 
       if (typeof roadmapJson.goal === 'string' && Array.isArray(roadmapJson.steps)) {
         roadmapData = {
@@ -155,7 +144,6 @@ export default function AdvisorView() {
         const steps: RoadmapStep[] = []
         const stepsData = roadmapJson.steps || roadmapJson.stages || roadmapJson.phases || roadmapJson.timeline
 
-
         if (Array.isArray(stepsData)) {
           stepsData.forEach((item: unknown, index: number) => {
             const itemData = item as JsonData;
@@ -189,12 +177,10 @@ export default function AdvisorView() {
         roadmapData = { goal, steps }
       }
 
-
       roadmapData.steps = roadmapData.steps.map((step) => ({
         ...step,
         tasks: Array.isArray(step.tasks) ? step.tasks.map(task => String(task)).filter((task) => typeof task === "string") : [],
       }))
-
 
       console.log("[v0] Final roadmap data:", roadmapData)
       return roadmapData
@@ -213,7 +199,6 @@ export default function AdvisorView() {
       }
     }
   }
-
 
 
   const handleSubmit = async (e: FormEvent) => {
@@ -246,7 +231,6 @@ export default function AdvisorView() {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
       const parser = createParser({
@@ -259,7 +243,6 @@ export default function AdvisorView() {
               if (!roadmapJsonString) {
                 throw new Error("Agent returned an empty response.")
               }
-
 
               const parsedRoadmap = parseRoadmapResponse(roadmapJsonString)
               setRoadmap(parsedRoadmap)
@@ -282,14 +265,12 @@ export default function AdvisorView() {
         },
       })
 
-
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
         const chunk = decoder.decode(value, { stream: true })
         parser.feed(chunk)
       }
-
 
     } catch (error) {
       console.error("Advisor API error:", error)
@@ -303,14 +284,12 @@ export default function AdvisorView() {
     }
   }
 
-
   const handleEditChange = (phaseIndex: number, taskIndex: number, value: string) => {
     if (!editedRoadmap) return
     const newRoadmap = { ...editedRoadmap }
     newRoadmap.steps[phaseIndex].tasks[taskIndex] = value
     setEditedRoadmap(newRoadmap)
   }
-
 
   const handlePhaseTitleChange = (phaseIndex: number, value: string) => {
     if (!editedRoadmap) return
@@ -319,28 +298,27 @@ export default function AdvisorView() {
     setEditedRoadmap(newRoadmap)
   }
 
-
   const handleSaveChanges = () => {
     setRoadmap(editedRoadmap)
     setIsEditing(false)
   }
 
-
   const handleDownloadPdf = async () => {
     if (!roadmap) return;
     setIsDownloading(true);
 
-
     try {
+      // --- FIX: Dynamically import jspdf ---
+      const { default: jsPDF } = await import("jspdf");
+      // ---
+      
       const doc = new jsPDF();
       let yPosition = 20; 
-
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(22);
       doc.text(roadmap.goal, 105, yPosition, { align: "center" });
       yPosition += 15;
-
 
       roadmap.steps.forEach((step, stepIndex) => {
         if (yPosition > 25) {
@@ -351,12 +329,10 @@ export default function AdvisorView() {
           yPosition = 20;
         }
 
-
         doc.setFont("helvetica", "bold");
         doc.setFontSize(16);
         doc.text(`Step ${stepIndex + 1}: ${step.title}`, 15, yPosition);
         yPosition += 10;
-
 
         doc.setFont("helvetica", "normal");
         doc.setFontSize(12);
@@ -370,7 +346,6 @@ export default function AdvisorView() {
           yPosition += (splitTask.length * 5) + 3; 
         });
 
-
         if (stepIndex < roadmap.steps.length - 1) {
            yPosition += 5;
            doc.line(15, yPosition, 195, yPosition); 
@@ -378,9 +353,7 @@ export default function AdvisorView() {
         }
       });
 
-
       doc.save(`${roadmap.goal.replace(/\s+/g, "_") || "roadmap"}.pdf`);
-
 
     } catch (error) {
       console.error("Simple PDF generation failed:", error);
@@ -390,7 +363,6 @@ export default function AdvisorView() {
     }
   };
 
-
   const handleAddTask = (stepIndex: number) => {
     if (!editedRoadmap) return
     const newRoadmap = { ...editedRoadmap }
@@ -398,14 +370,12 @@ export default function AdvisorView() {
     setEditedRoadmap(newRoadmap)
   }
 
-
   const handleRemoveTask = (stepIndex: number, taskIndex: number) => {
     if (!editedRoadmap) return
     const newRoadmap = { ...editedRoadmap }
     newRoadmap.steps[stepIndex].tasks.splice(taskIndex, 1)
     setEditedRoadmap(newRoadmap)
   }
-
 
   const handleAddStep = () => {
     if (!editedRoadmap) return
@@ -416,7 +386,6 @@ export default function AdvisorView() {
     })
     setEditedRoadmap(newRoadmap)
   }
-
 
   return (
     <div className="flex flex-col h-full bg-white text-black">
@@ -479,7 +448,6 @@ export default function AdvisorView() {
               )}
             </PrimaryButton> 
           </form>
-
 
           <div ref={roadmapRef} className="bg-white">
             {roadmap && (
@@ -573,3 +541,4 @@ export default function AdvisorView() {
     </div>
   )
 }
+
