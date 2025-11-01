@@ -1,12 +1,10 @@
 {
   "functions": {
     "api/upload.py": {
-      "maxDuration": 60,
-      "runtime": "python3.11"
+      "maxDuration": 60
     },
     "api/query.py": {
-      "maxDuration": 60,
-      "runtime": "python3.11"
+      "maxDuration": 60
     }
   }
 }
