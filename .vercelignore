@@ -1,7 +1,11 @@
-# Ignore the entire backend folder and its contents
-backend/
+# Ignore the specific files that confuse Vercel's build system
+backend/run.py
+backend/requirements.txt
 
-# Ignore any local virtual environments
-backend/venv/
+# Also ignore any dev requirements files
+backend/requirements.in
+backend/dev-requirements.in
+
+# And ignore any local virtual environments
 venv/
 .venv/
