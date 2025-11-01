@@ -4,6 +4,21 @@ import { HuggingFaceInferenceEmbeddings } from "@langchain/community/embeddings/
 import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 
+interface DocumentMetadata {
+  uploaded_at?: string;
+  [key: string]: unknown;
+}
+
+interface SupabaseDocument {
+  id: string;
+  metadata: DocumentMetadata;
+}
+
+interface LLMResponse {
+  content?: Array<{ text?: string } | string>;
+  text?: string;
+}
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -20,7 +35,7 @@ const llm = new ChatGoogleGenerativeAI({
 
 export async function POST(req: Request) {
   try {
-    const { query } = await req.json();
+    const { query }: { query?: string } = await req.json();
 
     if (!query) {
       return NextResponse.json({ error: "Query is required" }, { status: 400 });
@@ -40,8 +55,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const recentFile = files[0];
-    const uploadedAt = (recentFile.metadata as any)?.uploaded_at;
+    const recentFile = files[0] as SupabaseDocument;
+    const uploadedAt = recentFile.metadata?.uploaded_at;
 
     if (!uploadedAt) {
       return NextResponse.json(
@@ -68,10 +83,8 @@ export async function POST(req: Request) {
     });
 
     const results = await vectorStore.similaritySearch(query, 4);
-
     const context = results.map((r) => r.pageContent).join("\n\n---\n\n");
 
-    // 🧠 More robust prompt for higher-quality answers
     const prompt = `
 You are a highly intelligent assistant helping the user find accurate answers from provided documents.
 
@@ -92,34 +105,35 @@ ${query}
 🧩 Your Answer:
 `;
 
-    const response = await llm.invoke(prompt);
+    const response = (await llm.invoke(prompt)) as unknown;
 
-    // Extract text safely
+    // --- Safe type parsing ---
     let answer = "No answer generated.";
+
     if (typeof response === "string") {
       answer = response;
-    } else if (
-      response &&
-      typeof response === "object" &&
-      "content" in response &&
-      Array.isArray((response as any).content) &&
-      (response as any).content.length > 0
-    ) {
-      const first = (response as any).content[0];
-      if (typeof first === "string") {
-        answer = first;
-      } else if (first && typeof first === "object" && "text" in first) {
-        answer = (first as any).text;
-      } else {
-        answer = JSON.stringify(first);
+    } else if (typeof response === "object" && response !== null) {
+      const r = response as LLMResponse;
+
+      if (Array.isArray(r.content) && r.content.length > 0) {
+        const first = r.content[0];
+        if (typeof first === "string") {
+          answer = first;
+        } else if (first && typeof first === "object" && typeof first.text === "string") {
+          answer = first.text;
+        } else {
+          answer = JSON.stringify(first);
+        }
+      } else if (typeof r.text === "string") {
+        answer = r.text;
       }
-    } else if (response && typeof response === "object" && "text" in (response as any)) {
-      answer = (response as any).text;
     }
 
     return NextResponse.json({ answer });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("❌ Query error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const errMsg =
+      error instanceof Error ? error.message : "Unknown server error occurred.";
+    return NextResponse.json({ error: errMsg }, { status: 500 });
   }
 }

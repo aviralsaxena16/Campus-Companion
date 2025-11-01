@@ -29,7 +29,8 @@ export async function POST(req: Request) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
-    const userEmail = (formData.get("user_email") as string) || "test@example.com";
+    const userEmail =
+      (formData.get("user_email") as string) || "test@example.com";
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
 
     console.log(`📄 Processing file: ${file.name}`);
 
-    // --- Save uploaded file temporarily (fixes first-run read errors)
+    // --- Save uploaded file temporarily
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "pdf-upload-"));
     const tempPath = path.join(tempDir, file.name);
     const arrayBuffer = await file.arrayBuffer();
@@ -59,16 +60,18 @@ export async function POST(req: Request) {
 
     // --- Add metadata (user info + timestamp) ---
     const uploadedAt = new Date().toISOString();
-    const docsWithMetadata: Document[] = split_docs.map((d: Document, i: number) => ({
-      ...d,
-      metadata: {
-        ...d.metadata,
-        user_id: userEmail,
-        file_name: file.name,
-        chunk_index: i,
-        uploaded_at: uploadedAt,
-      },
-    }));
+    const docsWithMetadata: Document[] = split_docs.map(
+      (d: Document, i: number) => ({
+        ...d,
+        metadata: {
+          ...d.metadata,
+          user_id: userEmail,
+          file_name: file.name,
+          chunk_index: i,
+          uploaded_at: uploadedAt,
+        },
+      })
+    );
 
     console.log(`🧩 Created ${docsWithMetadata.length} chunks.`);
 
@@ -91,7 +94,7 @@ export async function POST(req: Request) {
     // --- Retry logic for Supabase insert ---
     let attempt = 0;
     const maxAttempts = 3;
-    let insertError = null;
+    let insertError: Error | null = null;
 
     while (attempt < maxAttempts) {
       const { error } = await supabase.from("documents").insert(data_to_insert);
@@ -101,12 +104,16 @@ export async function POST(req: Request) {
       }
       insertError = error;
       attempt++;
-      console.warn(`⚠️ Supabase insert attempt ${attempt} failed: ${error.message}`);
+      console.warn(
+        `⚠️ Supabase insert attempt ${attempt} failed: ${error.message}`
+      );
       await new Promise((res) => setTimeout(res, 1000 * attempt)); // exponential backoff
     }
 
     if (insertError) {
-      throw new Error(`Supabase insert failed after ${maxAttempts} attempts: ${insertError.message}`);
+      throw new Error(
+        `Supabase insert failed after ${maxAttempts} attempts: ${insertError.message}`
+      );
     }
 
     console.log("✅ Successfully stored documents.");
@@ -121,10 +128,16 @@ export async function POST(req: Request) {
       uploaded_at: uploadedAt,
       chunks_created: docsWithMetadata.length,
     });
-  } catch (error: any) {
-    console.error("❌ Upload error:", error);
+  } catch (err: unknown) {
+    console.error("❌ Upload error:", err);
+
+    const errorMessage =
+      err instanceof Error ? err.message : "Upload failed";
+    const errorStack =
+      err instanceof Error ? err.stack : undefined;
+
     return NextResponse.json(
-      { error: error.message || "Upload failed", stack: error.stack },
+      { error: errorMessage, stack: errorStack },
       { status: 500 }
     );
   }
