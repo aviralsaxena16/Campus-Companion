@@ -33,7 +33,9 @@ base_tools = [
     EventParserTool(),
     DocumentQueryTool(), # <-- Initialize it simply. The agent will provide the args.
     ContestScannerTool(),
-    AdvisorTool()
+    AdvisorTool(),
+    BulkEventParserTool(),
+    
 ]
 # ---
 
