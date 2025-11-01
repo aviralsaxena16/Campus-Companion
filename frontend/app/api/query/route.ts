@@ -26,7 +26,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Query is required" }, { status: 400 });
     }
 
-    // Find the most recent document uploaded within the last 120 seconds
     const { data: files, error: fetchError } = await supabase
       .from("documents")
       .select("id, metadata")
@@ -62,24 +61,41 @@ export async function POST(req: Request) {
       );
     }
 
-    // Load the most recent document’s embeddings
     const vectorStore = await SupabaseVectorStore.fromExistingIndex(embeddings, {
       client: supabase,
       tableName: "documents",
       queryName: "match_documents",
     });
 
-    const results = await vectorStore.similaritySearch(query, 3);
+    const results = await vectorStore.similaritySearch(query, 4);
 
-    const context = results.map((r) => r.pageContent).join("\n");
+    const context = results.map((r) => r.pageContent).join("\n\n---\n\n");
 
-    const response = await llm.invoke(
-      `Answer the user's question using the context below:\n\nContext:\n${context}\n\nQuestion: ${query}`
-    );
+    // 🧠 More robust prompt for higher-quality answers
+    const prompt = `
+You are a highly intelligent assistant helping the user find accurate answers from provided documents.
 
-    // Extract text content before returning, with runtime/type guards
+Follow these rules strictly:
+1. Base your answer *only* on the given context unless you are 100% sure of additional facts.
+2. If the context does not contain the answer, say: "The provided document does not contain enough information to answer this question."
+3. Keep your response clear, factual, and concise — 4-6 sentences max.
+4. If the question asks for a summary, provide a short but meaningful summary from the context.
+5. If the document includes structured data (tables, numbers, or bullet points), retain that structure in your response.
+
+---
+🧾 Context:
+${context}
+
+💬 User Question:
+${query}
+
+🧩 Your Answer:
+`;
+
+    const response = await llm.invoke(prompt);
+
+    // Extract text safely
     let answer = "No answer generated.";
-
     if (typeof response === "string") {
       answer = response;
     } else if (
@@ -98,7 +114,6 @@ export async function POST(req: Request) {
         answer = JSON.stringify(first);
       }
     } else if (response && typeof response === "object" && "text" in (response as any)) {
-      // handle case where response itself has a text field
       answer = (response as any).text;
     }
 
