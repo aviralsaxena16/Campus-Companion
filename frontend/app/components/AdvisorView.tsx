@@ -1,10 +1,9 @@
 "use client"
 import React, { useState } from "react"
-import { Button } from "@/components/ui/button"
-import MyRoadmaps from "@/app/components/MyRoadmaps"
-import GenerateRoadmap from "@/app/components/GenerateRoadmap"
-
-import { useAuth } from "@/context/AuthContext"
+import { useAuth } from "../../context/AuthContext" 
+import { Button } from "../../components/ui/button"
+import GenerateRoadmap from "./GenerateRoadmap" // New Component
+import MyRoadmaps from "./MyRoadmaps" // New Component
 
 // Helper component for tabs
 const TabButton = ({ isActive, onClick, children }: { isActive: boolean, onClick: () => void, children: React.ReactNode }) => (

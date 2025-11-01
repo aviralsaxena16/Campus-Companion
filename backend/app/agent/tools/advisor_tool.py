@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers.json import JsonOutputParser
 import os
+# --- 1. Import and use ChatGroq for speed and consistency ---
 from langchain_google_genai import ChatGoogleGenerativeAI
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=os.getenv("GOOGLE_API_KEY"), temperature=0)
 
@@ -19,7 +20,6 @@ class AdvisorTool(BaseTool):
     description: str = "Generates a structured, step-by-step roadmap for a user's goal, such as learning a new skill or preparing for an event. Use this when the user asks for a 'plan', 'roadmap', or 'how to prepare'."
     args_schema: Type[AdvisorInput] = AdvisorInput
 
-    # --- 2. Make the JSON cleaner more robust ---
     def _clean_json_response(self, response_text: str) -> str:
         """Clean and extract JSON from LLM response"""
         response_text = response_text.strip()
@@ -37,7 +37,6 @@ class AdvisorTool(BaseTool):
             return response_text[start_index:end_index+1]
         
         raise ValueError("No valid JSON object found in response text")
-    # ---
 
     async def _arun(self, goal: str):
         parser_prompt = ChatPromptTemplate.from_template(
@@ -128,7 +127,7 @@ class AdvisorTool(BaseTool):
                             "The AI response couldn't be parsed as valid JSON.",
                             "Please try rephrasing your request.",
                             f"Error details: {str(e)}",
-                            f"Raw Response: {response_text[:200]}..." # Add raw response snippet
+                            f"Raw Response: {response_text[:200]}..."
                         ]
                     }
                 ],
