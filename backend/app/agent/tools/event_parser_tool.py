@@ -7,7 +7,6 @@ from langchain_core.output_parsers.json import JsonOutputParser
 import os
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_groq import ChatGroq
 load_dotenv()
 
 class EventParserInput(BaseModel):
