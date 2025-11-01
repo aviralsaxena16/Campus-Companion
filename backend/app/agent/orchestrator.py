@@ -30,8 +30,7 @@ llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=os.getenv(
 # Removed CreateCalendarEventTool and GmailReaderTool (they are added later).
 base_tools = [
     WebScraperTool(), 
-    EventParserTool(),
-    DocumentQueryTool(), # <-- Initialize it simply. The agent will provide the args.
+    EventParserTool(),  # <-- Initialize it simply. The agent will provide the args.
     ContestScannerTool(),
     AdvisorTool(),
     BulkEventParserTool(),

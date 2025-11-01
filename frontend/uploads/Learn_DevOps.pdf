@@ -1,0 +1,486 @@
+%PDF-1.3
+%ºß¬à
+3 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 4 0 R
+>>
+endobj
+4 0 obj
+<<
+/Length 4316
+>>
+stream
+0.5670000000000001 w
+0 G
+BT
+/F2 22 Tf
+25.2999999999999972 TL
+0 g
+223.3877952755905767 785.1970866141732586 Td
+(Learn DevOps) Tj
+ET
+BT
+/F2 16 Tf
+18.3999999999999986 TL
+0 g
+42.5196850393700814 728.5041732283464171 Td
+(Step 1: Understand Core DevOps Principles & Foundations) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 700.15771653543311 Td
+(• Define DevOps, its culture, and key methodologies \(Agile, Lean, CALMS\).) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 677.480551181102328 Td
+(• Research the history and evolution of DevOps practices and tools.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 654.8033858267716596 Td
+(• Review fundamental Linux commands, file system structure, and user management.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 632.1262204724408775 Td
+(• Understand basic networking concepts: IP addresses, DNS, HTTP/S, ports.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 609.4490551181102092 Td
+(• Explore different types of software development lifecycles \(SDLCs\).) Tj
+ET
+42.5196850393700814 572.5986614173227736 m
+552.7559055118110791 572.5986614173227736 l
+S
+BT
+/F2 16 Tf
+18.3999999999999986 TL
+0 g
+42.5196850393700814 544.2522047244094665 Td
+(Step 2: Master Version Control & Scripting) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 515.9057480314959321 Td
+(• Install Git and configure user credentials globally.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 493.2285826771653205 Td
+(• Practice core Git commands: clone, add, commit, push, pull, branch, merge, rebase.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 470.5514173228345953 Td
+(• Create a GitHub/GitLab account and host a personal project repository.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 447.8742519685038701 Td
+(• Learn Bash scripting fundamentals: variables, loops, conditionals, functions, I/O redirection.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 425.1970866141731449 Td
+(• Write a Python script to automate a simple system task \(e.g., file backup, log parsing\).) Tj
+ET
+42.5196850393700814 388.3466929133857661 m
+552.7559055118110791 388.3466929133857661 l
+S
+BT
+/F2 16 Tf
+18.3999999999999986 TL
+0 g
+42.5196850393700814 360.0002362204724022 Td
+(Step 3: Implement CI/CD & Containerization) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 331.6537795275589815 Td
+(• Understand the stages of a Continuous Integration/Continuous Delivery \(CI/CD\) pipeline.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 308.9766141732283131 Td
+(• Set up a local Jenkins/GitLab CI/CD pipeline for a simple application \(e.g., build, test\).) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 286.2994488188975311 Td
+(• Write a Dockerfile to containerize a basic web application \(e.g., Nginx, Python Flask app\).) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 263.6222834645668627 Td
+(• Build and run Docker images locally, managing containers, volumes, and networks.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 240.9451181102361943 Td
+(• Push a custom Docker image to Docker Hub or a private registry.) Tj
+ET
+42.5196850393700814 204.0947244094487303 m
+552.7559055118110791 204.0947244094487303 l
+S
+BT
+/F2 16 Tf
+18.3999999999999986 TL
+0 g
+42.5196850393700814 175.748267716535338 Td
+(Step 4: Explore Infrastructure as Code & Cloud Platforms) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 147.4018110236219172 Td
+(• Create a free-tier account on a major cloud provider \(AWS, Azure, or GCP\).) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 124.7246456692912489 Td
+(• Provision a simple virtual machine and network using the cloud provider's console.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 102.0474803149605805 Td
+(• Install Terraform and write a basic HCL configuration to deploy a cloud resource \(e.g., EC2) Tj
+T* (instance\).) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 65.1970866141731449 Td
+(• Use Ansible to automate configuration management on a remote server \(e.g., install Nginx,) Tj
+T* (deploy a simple app\).) Tj
+ET
+endstream
+endobj
+5 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 6 0 R
+>>
+endobj
+6 0 obj
+<<
+/Length 1377
+>>
+stream
+0.5670000000000001 w
+0 G
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 785.1970866141732586 Td
+(• Understand the concepts of immutable infrastructure and desired state configuration.) Tj
+ET
+42.5196850393700814 748.346692913385823 m
+552.7559055118110791 748.346692913385823 l
+S
+BT
+/F2 16 Tf
+18.3999999999999986 TL
+0 g
+42.5196850393700814 720.0002362204724022 Td
+(Step 5: Dive into Container Orchestration & Monitoring) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 691.6537795275589815 Td
+(• Understand the core concepts of Kubernetes \(Pods, Deployments, Services, Namespaces,) Tj
+T* (Ingress\).) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 654.8033858267716596 Td
+(• Set up a local Kubernetes cluster using Minikube or Kind.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 632.1262204724408775 Td
+(• Deploy a containerized application to Kubernetes using YAML manifests and `kubectl`) Tj
+T* (commands.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 595.2758267716535556 Td
+(• Learn basic `kubectl` commands for managing deployments, services, and logs.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 572.5986614173227736 Td
+(• Explore basic monitoring concepts: metrics, logs, alerts, and identify common tools) Tj
+T* (\(Prometheus, Grafana, ELK stack\).) Tj
+ET
+endstream
+endobj
+1 0 obj
+<</Type /Pages
+/Kids [3 0 R 5 0 R ]
+/Count 2
+>>
+endobj
+7 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+8 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+9 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+10 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+11 0 obj
+<<
+/Type /Font
+/BaseFont /Courier
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+12 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+13 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+14 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+15 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Roman
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+16 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+17 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Italic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+18 0 obj
+<<
+/Type /Font
+/BaseFont /Times-BoldItalic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+19 0 obj
+<<
+/Type /Font
+/BaseFont /ZapfDingbats
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+20 0 obj
+<<
+/Type /Font
+/BaseFont /Symbol
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+2 0 obj
+<<
+/ProcSet [/PDF /Text /ImageB /ImageC /ImageI]
+/Font <<
+/F1 7 0 R
+/F2 8 0 R
+/F3 9 0 R
+/F4 10 0 R
+/F5 11 0 R
+/F6 12 0 R
+/F7 13 0 R
+/F8 14 0 R
+/F9 15 0 R
+/F10 16 0 R
+/F11 17 0 R
+/F12 18 0 R
+/F13 19 0 R
+/F14 20 0 R
+>>
+/XObject <<
+>>
+>>
+endobj
+21 0 obj
+<<
+/Producer (jsPDF 3.0.2)
+/CreationDate (D:20251031034020+05'30')
+>>
+endobj
+22 0 obj
+<<
+/Type /Catalog
+/Pages 1 0 R
+/OpenAction [3 0 R /FitH null]
+/PageLayout /OneColumn
+>>
+endobj
+xref
+0 23
+0000000000 65535 f 
+0000006086 00000 n 
+0000007911 00000 n 
+0000000015 00000 n 
+0000000152 00000 n 
+0000004520 00000 n 
+0000004657 00000 n 
+0000006149 00000 n 
+0000006274 00000 n 
+0000006404 00000 n 
+0000006537 00000 n 
+0000006675 00000 n 
+0000006799 00000 n 
+0000006928 00000 n 
+0000007060 00000 n 
+0000007196 00000 n 
+0000007324 00000 n 
+0000007451 00000 n 
+0000007580 00000 n 
+0000007713 00000 n 
+0000007815 00000 n 
+0000008161 00000 n 
+0000008247 00000 n 
+trailer
+<<
+/Size 23
+/Root 22 0 R
+/Info 21 0 R
+/ID [ <B99E67239EEE8FD51A95CB59D73E825B> <B99E67239EEE8FD51A95CB59D73E825B> ]
+>>
+startxref
+8351
+%%EOF

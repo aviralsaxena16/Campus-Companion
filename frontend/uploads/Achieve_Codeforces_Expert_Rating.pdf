@@ -1,0 +1,552 @@
+%PDF-1.3
+%ºß¬à
+3 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 4 0 R
+>>
+endobj
+4 0 obj
+<<
+/Length 4104
+>>
+stream
+0.5670000000000001 w
+0 G
+BT
+/F2 22 Tf
+25.2999999999999972 TL
+0 g
+118.2277952755905659 785.1970866141732586 Td
+(Achieve Codeforces Expert Rating) Tj
+ET
+BT
+/F2 16 Tf
+18.3999999999999986 TL
+0 g
+42.5196850393700814 728.5041732283464171 Td
+(Step 1: Foundational Setup & Language Proficiency) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 700.15771653543311 Td
+(• Create a Codeforces account and complete your profile.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 677.480551181102328 Td
+(• Select a primary programming language \(e.g., C++, Java, Python\) and master its syntax.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 654.8033858267716596 Td
+(• Set up a local development environment \(IDE, compiler/interpreter\) for competitive) Tj
+T* (programming.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 617.952992125984224 Td
+(• Learn basic input/output operations and standard library usage for your chosen language.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 595.2758267716535556 Td
+(• Understand the Codeforces rating system and contest rules.) Tj
+ET
+42.5196850393700814 558.42543307086612 m
+552.7559055118110791 558.42543307086612 l
+S
+BT
+/F2 16 Tf
+18.3999999999999986 TL
+0 g
+42.5196850393700814 530.0789763779526993 Td
+(Step 2: Master Core Data Structures & Algorithms) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 501.7325196850393354 Td
+(• Study fundamental data structures: arrays, vectors, strings, stacks, queues.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 479.0553543307086102 Td
+(• Learn basic algorithms: sorting \(e.g., merge sort, quick sort\), binary search, recursion.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 456.378188976377885 Td
+(• Solve at least 50 problems tagged 'implementation' and 'math' with difficulty up to 1000.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 433.7010236220471597 Td
+(• Implement common utility functions \(e.g., GCD, prime check, power\) from scratch.) Tj
+ET
+42.5196850393700814 396.850629921259781 m
+552.7559055118110791 396.850629921259781 l
+S
+BT
+/F2 16 Tf
+18.3999999999999986 TL
+0 g
+42.5196850393700814 368.5041732283464171 Td
+(Step 3: Systematic Problem Solving & Pattern Recognition) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 340.1577165354329964 Td
+(• Solve all Div2 A and B problems from the last 20 contests on Codeforces.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 317.480551181102328 Td
+(• Practice problems tagged 'greedy' and 'brute force' until comfortable.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 294.8033858267715459 Td
+(• Identify common problem patterns \(e.g., two pointers, prefix sums, sliding window\) through) Tj
+T* (practice.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 257.952992125984224 Td
+(• Learn to analyze problem constraints to determine appropriate algorithm complexity.) Tj
+ET
+42.5196850393700814 221.10259842519676 m
+552.7559055118110791 221.10259842519676 l
+S
+BT
+/F2 16 Tf
+18.3999999999999986 TL
+0 g
+42.5196850393700814 192.7561417322833677 Td
+(Step 4: Intermediate Algorithms & Techniques) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 164.4096850393699469 Td
+(• Study graph traversal algorithms: Breadth-First Search \(BFS\) and Depth-First Search \(DFS\).) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 141.7325196850392786 Td
+(• Learn basic Dynamic Programming \(DP\) concepts: memoization, tabulation, common DP) Tj
+T* (states.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 104.882125984251843 Td
+(• Explore basic number theory topics: modular arithmetic, combinatorics \(nCr, permutations\).) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 82.2049606299211746 Td
+(• Solve at least 30 problems requiring BFS/DFS or basic DP with difficulty up to 1400.) Tj
+ET
+42.5196850393700814 45.3545669291337532 m
+552.7559055118110791 45.3545669291337532 l
+S
+endstream
+endobj
+5 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 6 0 R
+>>
+endobj
+6 0 obj
+<<
+/Length 3283
+>>
+stream
+0.5670000000000001 w
+0 G
+BT
+/F2 16 Tf
+18.3999999999999986 TL
+0 g
+42.5196850393700814 785.1970866141732586 Td
+(Step 5: Develop Contest Strategy & Speed) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 756.8506299212598378 Td
+(• Participate in at least 2 virtual contests per week, simulating real contest conditions.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 734.1734645669291695 Td
+(• Practice fast I/O techniques specific to your chosen language.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 711.4962992125983874 Td
+(• Develop a systematic approach to reading problems, identifying key information, and) Tj
+T* (planning solutions.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 674.6459055118109518 Td
+(• Improve debugging skills by quickly identifying and fixing errors during practice.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 651.9687401574802834 Td
+(• Learn time management strategies for contests \(e.g., allocating time per problem\).) Tj
+ET
+42.5196850393700814 615.1183464566928478 m
+552.7559055118110791 615.1183464566928478 l
+S
+BT
+/F2 16 Tf
+18.3999999999999986 TL
+0 g
+42.5196850393700814 586.7718897637794271 Td
+(Step 6: Advanced Topics & Targeted Improvement) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 558.42543307086612 Td
+(• Study advanced data structures: Segment Trees, Fenwick Trees \(BIT\), Disjoint Set Union) Tj
+T* (\(DSU\).) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 521.5750393700786844 Td
+(• Delve into more complex Dynamic Programming problems and graph algorithms \(e.g.,) Tj
+T* (Dijkstra, Floyd-Warshall\).) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 484.7246456692913057 Td
+(• Analyze performance after each contest to identify weak areas \(e.g., specific algorithm) Tj
+T* (types, time limits, debugging\).) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 447.8742519685038701 Td
+(• Focus practice on identified weak areas by solving targeted problems from problem sets.) Tj
+ET
+42.5196850393700814 411.0238582677164914 m
+552.7559055118110791 411.0238582677164914 l
+S
+BT
+/F2 16 Tf
+18.3999999999999986 TL
+0 g
+42.5196850393700814 382.6774015748030706 Td
+(Step 7: Consistent Practice, Upsolving & Review) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 354.3309448818897067 Td
+(• Participate in all available official Codeforces contests \(Div2/Div3/Div4\) that fit your) Tj
+T* (schedule.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 317.480551181102328 Td
+(• Upsolve all problems from contests that you couldn't solve or got wrong, within 24-48 hours.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 294.8033858267715459 Td
+(• Review solutions of top-rated competitors for problems you struggled with to learn) Tj
+T* (alternative approaches.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 257.952992125984224 Td
+(• Maintain a personal log of challenging problems, key insights, and common mistakes.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 235.2758267716534419 Td
+(• Regularly revisit fundamental concepts and algorithms to reinforce understanding.) Tj
+ET
+endstream
+endobj
+1 0 obj
+<</Type /Pages
+/Kids [3 0 R 5 0 R ]
+/Count 2
+>>
+endobj
+7 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+8 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+9 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+10 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+11 0 obj
+<<
+/Type /Font
+/BaseFont /Courier
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+12 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+13 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+14 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+15 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Roman
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+16 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+17 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Italic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+18 0 obj
+<<
+/Type /Font
+/BaseFont /Times-BoldItalic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+19 0 obj
+<<
+/Type /Font
+/BaseFont /ZapfDingbats
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+20 0 obj
+<<
+/Type /Font
+/BaseFont /Symbol
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+2 0 obj
+<<
+/ProcSet [/PDF /Text /ImageB /ImageC /ImageI]
+/Font <<
+/F1 7 0 R
+/F2 8 0 R
+/F3 9 0 R
+/F4 10 0 R
+/F5 11 0 R
+/F6 12 0 R
+/F7 13 0 R
+/F8 14 0 R
+/F9 15 0 R
+/F10 16 0 R
+/F11 17 0 R
+/F12 18 0 R
+/F13 19 0 R
+/F14 20 0 R
+>>
+/XObject <<
+>>
+>>
+endobj
+21 0 obj
+<<
+/Producer (jsPDF 3.0.2)
+/CreationDate (D:20251031105110+05'30')
+>>
+endobj
+22 0 obj
+<<
+/Type /Catalog
+/Pages 1 0 R
+/OpenAction [3 0 R /FitH null]
+/PageLayout /OneColumn
+>>
+endobj
+xref
+0 23
+0000000000 65535 f 
+0000007780 00000 n 
+0000009605 00000 n 
+0000000015 00000 n 
+0000000152 00000 n 
+0000004308 00000 n 
+0000004445 00000 n 
+0000007843 00000 n 
+0000007968 00000 n 
+0000008098 00000 n 
+0000008231 00000 n 
+0000008369 00000 n 
+0000008493 00000 n 
+0000008622 00000 n 
+0000008754 00000 n 
+0000008890 00000 n 
+0000009018 00000 n 
+0000009145 00000 n 
+0000009274 00000 n 
+0000009407 00000 n 
+0000009509 00000 n 
+0000009855 00000 n 
+0000009941 00000 n 
+trailer
+<<
+/Size 23
+/Root 22 0 R
+/Info 21 0 R
+/ID [ <D76D3EEF59D4443B46F1A13D1713732C> <D76D3EEF59D4443B46F1A13D1713732C> ]
+>>
+startxref
+10045
+%%EOF

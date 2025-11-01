@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useRef, useEffect, type FormEvent } from "react"
-// We use the 'useAuth' hook which is the correct way
-import { useAuth } from "../context/AuthContext"
+// --- FIX: Use the correct path alias ---
+import { useAuth } from "../context/AuthContext" 
 import { Send, Bot, User, Link as LinkIcon, Paperclip, Loader2, X, Check, Zap, Terminal, CheckCircle2 } from "lucide-react"
 import { createParser, type EventSourceMessage } from "eventsource-parser"
 import { Input } from "@/components/ui/input"
@@ -19,7 +19,6 @@ interface PlanStep {
 }
 
 export default function ChatSection() {
-  // We use our 'useAuth' hook, not 'useSession'
   const { session, status, requestProtectedAccess, isFullyAuthenticated } = useAuth()
   
   const [messages, setMessages] = useState<Message[]>([])
@@ -50,132 +49,157 @@ export default function ChatSection() {
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
-    // Use the session from useAuth
-    if (!file || !session?.accessToken) {
-      requestProtectedAccess()
-      return
+    if (!file || !isFullyAuthenticated || !session?.user?.email) {
+      requestProtectedAccess();
+      return;
     }
     
     setIsLoading(true)
     const formData = new FormData()
     formData.append("file", file)
+    formData.append("user_email", session.user.email)
+    
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      const response = await fetch(`${apiUrl}/api/files/upload`, {
+      // Call the Vercel API route
+      const response = await fetch("/api/upload", {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${session.accessToken}`
-        },
         body: formData,
       })
+      
       const data = await response.json()
       if (response.ok) {
-        setUploadedFilePath(data.file_path)
-        // You can add a toast notification here
+        setUploadedFilePath(file.name)
       } else {
         throw new Error(data.detail || "File upload failed")
       }
     } catch (error) {
       console.error("File upload error:", error)
+      alert((error as Error).message);
     } finally {
       setIsLoading(false)
       if (fileInputRef.current) fileInputRef.current.value = ""
     }
   }
-  
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    let currentInput = input
     
-    // Check for auth using our hook
-    if (!currentInput.trim() || !session?.accessToken) {
+    if (!input.trim() || !isFullyAuthenticated || !session?.accessToken || !session?.user?.email) {
       requestProtectedAccess()
       return
     }
 
-    if (uploadedFilePath) {
-      currentInput = `(Regarding the uploaded file at path: ${uploadedFilePath}) ${currentInput}`
-      setUploadedFilePath(null)
-    }
-    if (attachedLink) {
-        currentInput = `(Regarding the link: ${attachedLink}) ${currentInput}`
-        setAttachedLink(null)
-    }
     const userMessage: Message = { text: input, sender: "user" }
     setMessages((prev) => [...prev, userMessage])
     setPlanSteps([])
     setIsLoading(true)
+    
+    // --- FIX: Store the raw input before clearing it ---
+    const currentInput = input;
     setInput("")
+    // ---
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    const response = await fetch(`${apiUrl}/api/chat/stream`, {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        // The endpoint is protected by this HEADER token
-        "Authorization": `Bearer ${session.accessToken}` 
-      },
-      body: JSON.stringify({ 
-        message: currentInput, 
-        // --- THIS IS THE NEW FIELD ---
-        // We pass the access token in the BODY for the AGENT to use
-        access_token: session.accessToken
-      }),
-    })
-
-    if (!response.ok || !response.body) {
-      setIsLoading(false)
-      const errorText = await response.text()
-      const errorMessage: Message = { text: `Sorry, I ran into an error: ${errorText}`, sender: "ai" }
-      setMessages((prev) => [...prev, errorMessage])
-      return
-    }
-
-    // ... (rest of your streaming/parser logic is unchanged)
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    const parser = createParser({
-      onEvent(event: EventSourceMessage) {
-        try {
-          if (event.event === "start") return
-          const data = JSON.parse(event.data)
-          if (event.event === "tool_start") {
-            setPlanSteps((prev) => [
-              ...prev,
-              {
-                type: "Tool Call",
-                content: `${data.tool}(${JSON.stringify(data.tool_input)})`,
-              },
-            ])
-          } else if (event.event === "tool_end") {
-            setPlanSteps((prev) => [
-              ...prev,
-              {
-                type: "Tool Output",
-                content: `Result: ${data.output.substring(0, 150)}...`,
-              },
-            ])
-          } else if (event.event === "final_chunk") {
-            setMessages((prev) => [...prev, { text: data.output, sender: "ai" }])
-            setPlanSteps((prev) => [...prev, { type: "Finished", content: "Agent has finished." }])
-          }
-        } catch (e) {
-          console.error("Streaming parse error:", e)
+    if (uploadedFilePath) {
+      // RAG QUERY (Call Vercel Function)
+      try {
+        const response = await fetch("/api/query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: currentInput, // Use the stored input
+            file_name: uploadedFilePath,
+            user_email: session.user.email,
+            chat_history: messages.slice(-10), 
+          }),
+        });
+        
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.detail || "Failed to get answer");
         }
-      },
-    })
+        
+        setMessages((prev) => [...prev, { text: data.answer, sender: "ai" }]);
+        setUploadedFilePath(null); // Clear file after one question
 
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      const chunk = decoder.decode(value, { stream: true })
-      parser.feed(chunk)
+      } catch (error) {
+        const msg = (error as Error).message;
+        setMessages((prev) => [...prev, { text: `Error querying document: ${msg}`, sender: "ai" }]);
+      } finally {
+        setIsLoading(false);
+      }
+
+    } else {
+      // AGENT QUERY (Call Render Backend)
+      
+      // --- THIS IS THE FIX ---
+      // We must construct the full message for the agent,
+      // including any attached links.
+      let messageForAgent = currentInput;
+      if (attachedLink) {
+        messageForAgent = `(Regarding the link: ${attachedLink}) ${messageForAgent}`;
+        setAttachedLink(null); // Clear the link after sending
+      }
+      // --- END OF FIX ---
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const response = await fetch(`${apiUrl}/api/chat/stream`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.accessToken}` 
+        },
+        body: JSON.stringify({ 
+          message: messageForAgent, // <-- Use the full constructed message
+          access_token: session.accessToken
+        }),
+      })
+      
+      if (!response.ok || !response.body) {
+        setIsLoading(false)
+        const errorText = await response.text()
+        const errorMessage: Message = { text: `Sorry, I ran into an error: ${errorText}`, sender: "ai" }
+        setMessages((prev) => [...prev, errorMessage])
+        return
+      }
+
+      // Handle the agent's stream
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      const parser = createParser({
+        onEvent(event: EventSourceMessage) {
+          try {
+            if (event.event === "start") return
+            const data = JSON.parse(event.data)
+            if (event.event === "tool_start") {
+              setPlanSteps((prev) => [
+                ...prev,
+                { type: "Tool Call", content: `${data.tool}(${JSON.stringify(data.tool_input)})`},
+              ])
+            } else if (event.event === "tool_end") {
+              setPlanSteps((prev) => [
+                ...prev,
+                { type: "Tool Output", content: `Result: ${data.output.substring(0, 150)}...`},
+              ])
+            } else if (event.event === "final_chunk") {
+              setMessages((prev) => [...prev, { text: data.output, sender: "ai" }])
+              setPlanSteps((prev) => [...prev, { type: "Finished", content: "Agent has finished." }])
+            }
+          } catch (e) {
+            console.error("Streaming parse error:", e)
+          }
+        },
+      })
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const chunk = decoder.decode(value, { stream: true })
+        parser.feed(chunk)
+      }
+      setIsLoading(false)
     }
-
-    setIsLoading(false)
   }
-
-  // ... (Your JSX remains unchanged) ...
+  
   return (
     <div className="flex h-screen flex-col bg-white text-black">
       <header className="ml-8 flex shrink-0 items-center justify-between border-b-2 border-black p-4">
@@ -253,9 +277,17 @@ export default function ChatSection() {
                     <button type="button" onClick={removeAttachedLink} className="p-1 hover:bg-orange-200 rounded-full"> <X className="h-4 w-4" /> </button>
                   </div>
                 )}
+                
+                {uploadedFilePath && (
+                  <div className="flex items-center gap-2 rounded-full bg-orange-100 p-2 text-sm" style={{ fontFamily: "'Baloo 2', cursive" }}>
+                    <Paperclip className="h-5 w-5 flex-shrink-0" />
+                    <span className="max-w-[150px] truncate" title={uploadedFilePath}>{uploadedFilePath}</span>
+                    <button type="button" onClick={() => setUploadedFilePath(null)} className="p-1 hover:bg-orange-200 rounded-full"> <X className="h-4 w-4" /> </button>
+                  </div>
+                )}
 
                 <Input
-                  placeholder="Ask your agent..."
+                  placeholder={uploadedFilePath ? "Ask a question about your PDF..." : "Ask your agent..."}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   disabled={!isFullyAuthenticated || isLoading}
