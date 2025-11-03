@@ -108,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
           >
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
@@ -136,11 +136,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               </p>
               <ul className="my-6 space-y-3">
                 <li className="flex items-center text-base">
-                  <CheckCircle2 className="mr-3 h-6 w-6 flex-shrink-0 text-green-600" />
+                  <CheckCircle2 className="mr-3 h-6 w-6 shrink-0 text-green-600" />
                   Read your Google emails (for Mail Updates)
                 </li>
                 <li className="flex items-center text-base">
-                  <CheckCircle2 className="mr-3 h-6 w-6 flex-shrink-0 text-green-600" />
+                  <CheckCircle2 className="mr-3 h-6 w-6 shrink-0 text-green-600" />
                   Manage your Google Calendar (to schedule events)
                 </li>
               </ul>
