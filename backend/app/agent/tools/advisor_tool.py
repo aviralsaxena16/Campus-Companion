@@ -22,6 +22,24 @@ class AdvisorTool(BaseTool):
     description: str = "Generates a structured, step-by-step roadmap for a user's goal, such as learning a new skill or preparing for an event. Use this when the user asks for a 'plan', 'roadmap', or 'how to prepare'."
     args_schema: Type[AdvisorInput] = AdvisorInput
 
+    def _create_error_response(self, goal: str, error_msg: str) -> str:
+        """Create a valid JSON error response"""
+        error_response = {
+            "goal": goal,
+            "steps": [
+                {
+                    "title": "Generation Error",
+                    "tasks": [
+                        "Failed to generate roadmap. Please try again.",
+                        f"Error: {error_msg}"
+                    ]
+                }
+            ],
+            "error": error_msg
+        }
+        # Return compact JSON without extra formatting
+        return json.dumps(error_response, ensure_ascii=False)
+
     def _clean_json_response(self, response_text: str) -> str:
         """Clean and extract JSON from LLM response with better error handling"""
         response_text = response_text.strip()
@@ -46,6 +64,9 @@ class AdvisorTool(BaseTool):
             # Remove any trailing commas before closing brackets
             json_str = re.sub(r',(\s*[}\]])', r'\1', json_str)
             
+            # Remove control characters
+            json_str = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', json_str)
+            
             return json_str
         
         raise ValueError("No valid JSON object found in response text")
@@ -53,20 +74,29 @@ class AdvisorTool(BaseTool):
     async def _arun(self, goal: str):
         parser_prompt = ChatPromptTemplate.from_template(
             "You are a world-class strategic advisor. Create a detailed roadmap for the user's goal.\n"
-            "CRITICAL: Return ONLY a valid JSON object with this EXACT structure:\n"
-            '{{\"goal\": \"[clear goal title]\", \"steps\": [{{\"title\": \"Step Name\", \"tasks\": [\"specific task 1\", \"specific task 2\", \"specific task 3\"]}}]}}\n\n'
-            "REQUIREMENTS:\n"
-            "- Use 'goal' and 'steps' as top-level keys (not 'title' and 'stages')\n"
-            "- Each step must have 'title' and 'tasks' keys\n"
-            "- Include 3-5 specific, actionable tasks per step\n"
-            "- Make tasks concrete and measurable\n"
-            "- Keep tasks concise (under 200 characters each)\n"
-            "- Use only standard double quotes (\"), no smart quotes\n"
-            "- No trailing commas\n"
-            "- No markdown, no code fences, no explanations\n"
-            "- Return ONLY the JSON object\n\n"
+            "CRITICAL INSTRUCTIONS:\n"
+            "1. Return ONLY valid JSON - no explanations, no markdown, no extra text\n"
+            "2. Use this EXACT structure:\n"
+            '{{\n'
+            '  "goal": "clear goal title",\n'
+            '  "steps": [\n'
+            '    {{\n'
+            '      "title": "Step Name",\n'
+            '      "tasks": ["task 1", "task 2", "task 3"]\n'
+            '    }}\n'
+            '  ]\n'
+            '}}\n\n'
+            "3. Requirements:\n"
+            "   - Use 'goal' and 'steps' as top-level keys\n"
+            "   - Each step MUST have 'title' (string) and 'tasks' (array of strings)\n"
+            "   - Include 3-5 specific, actionable tasks per step\n"
+            "   - Keep tasks under 150 characters each\n"
+            "   - Use ONLY standard double quotes - no smart quotes\n"
+            "   - NO trailing commas anywhere\n"
+            "   - Escape any quotes inside string values with backslash\n"
+            "   - NO markdown, NO code fences, NO preamble\n\n"
             "USER'S GOAL: {goal}\n\n"
-            "JSON Response:"
+            "Return only the JSON object:"
         )
         chain = parser_prompt | llm
 
@@ -74,23 +104,37 @@ class AdvisorTool(BaseTool):
             response = await chain.ainvoke({"goal": goal})
             response_text = response.content
             
+            print(f"[AdvisorTool] Raw LLM response length: {len(response_text)}")
+            print(f"[AdvisorTool] First 200 chars: {response_text[:200]}")
+            
             # Clean and extract JSON
-            cleaned_json = self._clean_json_response(response_text)
+            try:
+                cleaned_json = self._clean_json_response(response_text)
+            except ValueError as e:
+                print(f"[AdvisorTool] ❌ Failed to extract JSON: {e}")
+                return self._create_error_response(goal, "Could not extract valid JSON from response")
+            
+            print(f"[AdvisorTool] Cleaned JSON length: {len(cleaned_json)}")
             
             # Try to parse the JSON
             try:
                 parsed_json = json.loads(cleaned_json)
+                print(f"[AdvisorTool] ✅ Successfully parsed JSON")
             except json.JSONDecodeError as e:
-                # If parsing fails, try to fix common issues
-                print(f"Initial JSON parse failed: {e}")
-                print(f"Attempting to fix JSON...")
+                print(f"[AdvisorTool] ❌ Initial JSON parse failed: {e}")
+                print(f"[AdvisorTool] Attempting additional fixes...")
                 
-                # Try to find and fix the specific issue
-                # Remove any control characters
+                # Additional aggressive fixes
                 cleaned_json = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', cleaned_json)
+                cleaned_json = re.sub(r"(\w)'(\w)", r"\1'\2", cleaned_json)
                 
-                # Try parsing again
-                parsed_json = json.loads(cleaned_json)
+                # Try one more time
+                try:
+                    parsed_json = json.loads(cleaned_json)
+                    print(f"[AdvisorTool] ✅ Successfully parsed after additional fixes")
+                except json.JSONDecodeError as e2:
+                    print(f"[AdvisorTool] ❌ Parse still failed: {e2}")
+                    return self._create_error_response(goal, f"JSON parsing failed: {str(e2)}")
             
             # Normalize the structure
             if "goal" not in parsed_json:
@@ -150,47 +194,15 @@ class AdvisorTool(BaseTool):
                 if not step["tasks"]:
                     step["tasks"] = [f"Complete {step.get('title', 'this step')}"]
             
-            return json.dumps(parsed_json, ensure_ascii=False, indent=2)
-            
-        except json.JSONDecodeError as e:
-            print(f"JSON Decode Error: {e}")
-            print(f"Response text (first 500 chars): {response_text[:500]}")
-            
-            error_response = {
-                "goal": goal,
-                "steps": [
-                    {
-                        "title": "JSON Parsing Error", 
-                        "tasks": [
-                            "The AI response couldn't be parsed as valid JSON.",
-                            "Please try again or rephrase your request.",
-                            f"Technical details: {str(e)}"
-                        ]
-                    }
-                ],
-                "error": "Invalid JSON response"
-            }
-            return json.dumps(error_response, ensure_ascii=False, indent=2)
-            
+            # Return clean, compact JSON without pretty printing
+                        # Return clean, compact JSON with wrapper
+            result = json.dumps({"advisor_tool_response": parsed_json}, ensure_ascii=False)
+            print(f"[AdvisorTool] ✅ Returning {len(parsed_json['steps'])} steps")
+            return result
+
         except Exception as e:
-            print(f"General Error: {e}")
-            print(f"Response text (first 500 chars): {response_text[:500] if 'response_text' in locals() else 'N/A'}")
-            
-            error_response = {
-                "goal": goal,
-                "steps": [
-                    {
-                        "title": "Generation Error", 
-                        "tasks": [
-                            "Failed to generate roadmap due to an unexpected error.",
-                            "Please try again with a different request.",
-                            f"Error: {str(e)}"
-                        ]
-                    }
-                ],
-                "error": f"Generation failed: {str(e)}"
-            }
-            return json.dumps(error_response, ensure_ascii=False, indent=2)
+            print(f"[AdvisorTool] ❌ Unexpected error: {e}")
+            return self._create_error_response(goal, str(e))
 
     def _run(self, goal: str):
         raise NotImplementedError("This tool is async only.")

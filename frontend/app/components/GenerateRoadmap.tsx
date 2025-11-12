@@ -50,119 +50,159 @@ export default function GenerateRoadmap({ session, isFullyAuthenticated, request
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null)
 
   // Your existing roadmap parsing logic
-  const parseRoadmapResponse = (response: string): Roadmap | null => {
-     try {
-      // ... (parsing logic is the same) ...
-      let parsedData: JsonData;
+  // --- Helper: find all balanced JSON objects in a string ---
+const extractAllJsonObjects = (text: string): string[] => {
+  const results: string[] = []
+  let depth = 0
+  let inString = false
+  let escapeNext = false
+  let startIndex = -1
 
-      try {
-        parsedData = JSON.parse(response) as JsonData
-      } catch {
-        const cleanedResponse = response
-          .replace(/```json\s*/g, "")
-          .replace(/```\s*$/g, "")
-          .trim()
-        const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/)
-        if (!jsonMatch) {
-          throw new Error("No JSON object found in response")
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]
+
+    if (escapeNext) {
+      escapeNext = false
+      continue
+    }
+
+    if (ch === "\\") {
+      // start escaping next char inside string
+      if (inString) escapeNext = true
+      continue
+    }
+
+    if (ch === '"') {
+      inString = !inString
+      continue
+    }
+
+    // Only count braces when not inside a string
+    if (!inString) {
+      if (ch === "{") {
+        if (depth === 0) {
+          startIndex = i
         }
-        parsedData = JSON.parse(jsonMatch[0]) as JsonData
-      }
-
-      const roadmapJson: JsonData = (parsedData.advisor_tool_response && typeof parsedData.advisor_tool_response === 'object')
-                            ? parsedData.advisor_tool_response as JsonData
-                            : parsedData;
-
-      let roadmapData: Roadmap
-
-      if (typeof roadmapJson.goal === 'string' && Array.isArray(roadmapJson.steps)) {
-        roadmapData = {
-          goal: roadmapJson.goal,
-          steps: roadmapJson.steps as RoadmapStep[]
+        depth++
+      } else if (ch === "}" && depth > 0) {
+        depth--
+        if (depth === 0 && startIndex !== -1) {
+          results.push(text.substring(startIndex, i + 1))
+          startIndex = -1
         }
-      } else if (typeof roadmapJson.title === 'string' && Array.isArray(roadmapJson.stages)) {
-        const steps: RoadmapStep[] = (roadmapJson.stages as any[]).map((stage: unknown, index: number) => {
-          const stageData = stage as JsonData;
-          const tasks: string[] = []
-          if (Array.isArray(stageData.topics)) { tasks.push(...stageData.topics) }
-          if (Array.isArray(stageData.tasks)) { tasks.push(...stageData.tasks) }
-          if (Array.isArray(stageData.content)) { tasks.push(...stageData.content) }
-          if (stageData.duration) { tasks.unshift(`Duration: ${stageData.duration}`) }
-          if (Array.isArray(stageData.resources) && stageData.resources.length > 0) {
-            tasks.push("Resources:")
-            tasks.push(...stageData.resources.map((resource: string) => `• ${resource}`))
-          }
-          return {
-            title: String(stageData.name || stageData.title || `Stage ${index + 1}`),
-            tasks: tasks.length > 0 ? tasks : [`Complete ${String(stageData.name || `Stage ${index + 1}`)}`],
-          }
-        })
-        if (Array.isArray(roadmapJson.additional_tips) && roadmapJson.additional_tips.length > 0) {
-          steps.push({
-            title: "Additional Tips",
-            tasks: roadmapJson.additional_tips as string[],
-          })
-        }
-        roadmapData = { goal: roadmapJson.title, steps: steps }
-      } else {
-        const goal = String(roadmapJson.title || roadmapJson.goal || roadmapJson.name || "Learning Plan")
-        const steps: RoadmapStep[] = []
-        const stepsData = roadmapJson.steps || roadmapJson.stages || roadmapJson.phases || roadmapJson.timeline
-
-        if (Array.isArray(stepsData)) {
-          stepsData.forEach((item: unknown, index: number) => {
-            const itemData = item as JsonData;
-            const tasks: string[] = []
-            if (Array.isArray(itemData.tasks)) { tasks.push(...itemData.tasks) }
-            if (Array.isArray(itemData.topics)) { tasks.push(...itemData.topics) }
-            if (Array.isArray(itemData.content)) { tasks.push(...itemData.content) }
-            if (itemData.description) { tasks.push(String(itemData.description)) }
-            steps.push({
-              title: String(itemData.title || itemData.name || `Step ${index + 1}`),
-              tasks: tasks.length > 0 ? tasks : [`Complete ${String(itemData.title || itemData.name || `Step ${index + 1}`)}`],
-            })
-          })
-        } else if (typeof stepsData === "object" && stepsData !== null) {
-          Object.values(stepsData).forEach((item: unknown, index: number) => {
-            const itemData = item as JsonData;
-            const tasks: string[] = []
-            if (Array.isArray(itemData.tasks)) { tasks.push(...itemData.tasks) }
-            if (Array.isArray(itemData.topics)) { tasks.push(...itemData.topics) }
-            if (Array.isArray(itemData.content)) { tasks.push(...itemData.content) }
-            if (itemData.description) { tasks.push(String(itemData.description)) }
-            steps.push({
-              title: String(itemData.title || itemData.name || `Step ${index + 1}`),
-              tasks: tasks.length > 0 ? tasks : [`Complete ${String(itemData.title || itemData.name || `Step ${index + 1}`)}`],
-            })
-          })
-        }
-        if (steps.length === 0) {
-          throw new Error("No valid steps found in response")
-        }
-        roadmapData = { goal, steps }
-      }
-
-      roadmapData.steps = roadmapData.steps.map((step) => ({
-        ...step,
-        tasks: Array.isArray(step.tasks) ? step.tasks.map(task => String(task)).filter((task) => typeof task === "string") : [],
-      }))
-
-      console.log("[v0] Final roadmap data:", roadmapData)
-      return roadmapData
-    } catch (error) {
-      console.error("Error parsing roadmap response:", error)
-      return {
-        goal: goal || "Learning Plan",
-        steps: [
-          {
-            title: "Parsing Error",
-            tasks: ["Sorry, I couldn&apos;t parse the roadmap. The AI returned an unexpected format. Please try again."],
-          },
-        ],
-        error: "Failed to parse response",
       }
     }
   }
+
+  return results
+}
+
+// --- Helper: unwrap nested advisor_tool_response recursively ---
+const unwrapAdvisorWrapper = (obj: unknown): any => {
+  let current = obj as any
+  // unwrap while the object has exactly one key 'advisor_tool_response' or nested wrappers
+  while (
+    current &&
+    typeof current === "object" &&
+    ("advisor_tool_response" in current) &&
+    (Object.keys(current).length === 1 || typeof current.advisor_tool_response === "object")
+  ) {
+    current = current.advisor_tool_response
+  }
+  return current
+}
+
+// --- Robust parse function: returns a valid Roadmap (never null) ---
+const parseRoadmapResponse = (response: string, fallbackGoal = "Learning Plan"): Roadmap => {
+  try {
+    if (!response || typeof response !== "string") {
+      throw new Error("Empty or non-string response")
+    }
+
+    // quick cleanup of obvious markdown fences and extraneous wrappers
+    let cleaned = response.replace(/```(?:json)?\s*/g, "").replace(/```\s*$/g, "").trim()
+
+    // Extract all balanced JSON objects
+    const jsonBlocks = extractAllJsonObjects(cleaned)
+    console.log("[parseRoadmapResponse] Found JSON blocks:", jsonBlocks.length)
+
+    if (jsonBlocks.length === 0) {
+      throw new Error("No JSON blocks found in response")
+    }
+
+    // Try blocks from last to first (last is most likely to be final output)
+    for (let i = jsonBlocks.length - 1; i >= 0; i--) {
+      const block = jsonBlocks[i]
+      try {
+        // Try parse as-is
+        let parsed = JSON.parse(block) as JsonData
+
+        // Unwrap nested wrapper(s)
+        parsed = unwrapAdvisorWrapper(parsed)
+
+        // Validate primary shape: goal (string) + steps (array)
+        if (parsed && typeof parsed === "object" && typeof parsed.goal === "string" && Array.isArray(parsed.steps)) {
+          // normalize steps
+          const steps: RoadmapStep[] = (parsed.steps as unknown[]).map((s) => {
+            const stepObj = (s as JsonData) ?? {}
+            const title = typeof stepObj.title === "string" ? String(stepObj.title) : "Untitled Step"
+            const tasks: string[] = Array.isArray(stepObj.tasks)
+              ? (stepObj.tasks as unknown[]).map((t) => String(t))
+              : []
+            return { title, tasks }
+          })
+          const roadmap: Roadmap = { goal: String(parsed.goal), steps }
+          console.log("[parseRoadmapResponse] Parsed valid roadmap from block index", i)
+          return roadmap
+        }
+
+        // sometimes the tool returns { advisor_tool_response: { advisor_tool_response: {...} } }
+        // we tried unwrapAdvisorWrapper which handles that; if not valid, continue to next block
+      } catch (err) {
+        // try a tiny cleanup and reparse (remove trailing commas inside this block)
+        try {
+          const fixed = block.replace(/,(\s*[}\]])/g, "$1")
+          let parsed = JSON.parse(fixed) as JsonData
+          parsed = unwrapAdvisorWrapper(parsed)
+          if (parsed && typeof parsed.goal === "string" && Array.isArray(parsed.steps)) {
+            const steps: RoadmapStep[] = (parsed.steps as unknown[]).map((s) => {
+              const stepObj = (s as JsonData) ?? {}
+              const title = typeof stepObj.title === "string" ? String(stepObj.title) : "Untitled Step"
+              const tasks: string[] = Array.isArray(stepObj.tasks)
+                ? (stepObj.tasks as unknown[]).map((t) => String(t))
+                : []
+              return { title, tasks }
+            })
+            const roadmap: Roadmap = { goal: String(parsed.goal), steps }
+            console.log("[parseRoadmapResponse] Parsed valid roadmap after minor fix from block index", i)
+            return roadmap
+          }
+        } catch {
+          // ignore and try previous block
+        }
+      }
+    }
+
+    throw new Error("No valid roadmap structure found inside extracted JSON blocks")
+  } catch (error) {
+    console.error("[parseRoadmapResponse] Final parse error:", error)
+    // Always return a helpful fallback roadmap to show reasonable UI instead of crash
+    return {
+      goal: fallbackGoal,
+      steps: [
+        {
+          title: "Parsing Error",
+          tasks: [
+            "Sorry, I couldn't parse the roadmap. The AI returned an unexpected format.",
+            "Try again or refine your prompt (shorter, ask for JSON only).",
+            `Debug: ${error instanceof Error ? error.message : String(error)}`,
+          ],
+        },
+      ],
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
+}
 
   // New save function
   const saveRoadmapToDb = async (goal: string, roadmap: Roadmap, user_id: string): Promise<Roadmap | null> => {
