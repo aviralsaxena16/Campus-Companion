@@ -8,9 +8,9 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 export const maxDuration = 60;
 
 // POST /api/roadmaps/[id]/upvote
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const { id: roadmap_id } = params;
+    const { id: roadmap_id } = await context.params;
     const { user_id } = await request.json();
 
     if (!user_id) {
@@ -18,9 +18,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     // Call the SQL function we created
-    const { data, error } = await supabase.rpc('toggle_roadmap_upvote', {
+    const { data, error } = await supabase.rpc("toggle_roadmap_upvote", {
       p_roadmap_id: roadmap_id,
-      p_user_id: user_id
+      p_user_id: user_id,
     });
 
     if (error) {
@@ -29,10 +29,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     // 'data' will be the new upvote count
     return NextResponse.json({ success: true, new_upvote_count: data });
-
   } catch (error) {
     console.error("Upvote error:", error);
     const errorMessage = (error as Error).message;
-    return NextResponse.json({ detail: `Error toggling upvote: ${errorMessage}` }, { status: 500 });
+    return NextResponse.json(
+      { detail: `Error toggling upvote: ${errorMessage}` },
+      { status: 500 }
+    );
   }
 }
