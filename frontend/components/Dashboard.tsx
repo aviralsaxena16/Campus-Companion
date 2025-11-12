@@ -25,7 +25,7 @@ export default function Dashboard() {
       {/* Hamburger button overlays properly on mobile */}
       <Button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-4 left-4 z-[60] md:hidden"
+        className="fixed top-4 left-4 z-60 md:hidden"
         variant="outline"
         size="icon"
       >

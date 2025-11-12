@@ -80,7 +80,7 @@ export default function Sidebar({
         Campus Companion
       </h2>
 
-      <div className="my-4 h-[2px] w-full rounded-full bg-black"></div>
+      <div className="my-4 h-0.5 w-full rounded-full bg-black"></div>
 
       <nav className="flex flex-col space-y-2 mt-4">
         <NavButton isActive={currentView === "home"} onClick={() => handleNavigation("home")}>

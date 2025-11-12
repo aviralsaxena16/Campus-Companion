@@ -44,7 +44,7 @@ export default function LandingPage({ setCurrentView }: LandingPageProps) {
     <div className="min-h-screen w-full flex flex-col bg-white text-black font-sans relative overflow-x-hidden">
       {/* Section 1: Hero */}
       {/* CHANGED: Significantly moved content up (pt-20) and right (lg:px-24) */}
-      <section className="flex items-center justify-center flex-grow pt-20 pb-16 px-6 lg:px-24 relative overflow-visible">
+      <section className="flex items-center justify-center grow pt-20 pb-16 px-6 lg:px-24 relative overflow-visible">
         {/* CHANGED: Moved image up (top-0) and resized it to create more space */}
         <div className="absolute top-0 right-15 w-full h-full lg:w-[50%] lg:h-[600px] pointer-events-none z-0">
           <Image
