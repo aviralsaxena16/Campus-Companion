@@ -153,7 +153,7 @@ def run_email_summary_for_user(user_email: str) -> list:
                 .limit(50)\
                 .all()
 
-        # 6. Process classifications and save important emails
+        # 6. Process classifications and save ALL emails (including GENERAL)
         print(f"\n[CLASSIFICATION RESULTS]")
         print("-" * 60)
         
@@ -178,21 +178,22 @@ def run_email_summary_for_user(user_email: str) -> list:
             score = top_prediction.get('score', 0.0)
             subject = email.get('subject', 'No Subject')[:50]
             
-            # Only save important emails (not SPAM/GENERAL)
-            is_important = label not in ["SPAM/PROMO", "GENERAL", "SPAM", "PROMO"] and score > 0.6
+            # Save ALL emails except SPAM/PROMO (now includes GENERAL)
+            is_spam = label in ["SPAM/PROMO", "SPAM", "PROMO"]
+            should_save = not is_spam and score > 0.5  # Lowered threshold to 0.5
             
-            if is_important:
+            if should_save:
                 new_update = models.ImportantUpdate(
                     user_id=user.id,
                     source_id=email['id'],
                     title=f"[{label}] {email.get('subject', 'No Subject')}",
                     summary=email.get('body_snippet', '')[:200] + "...",
-                    is_important=True
+                    is_important=True  # Mark as important to show in UI
                 )
                 new_updates_to_save.append(new_update)
                 print(f"✓ {label:12} ({score:.2f}) - {subject}")
             else:
-                print(f"✗ {label:12} ({score:.2f}) - {subject}")
+                print(f"✗ {label:12} ({score:.2f}) - {subject} [FILTERED]")
         
         print("-" * 60)
                 
