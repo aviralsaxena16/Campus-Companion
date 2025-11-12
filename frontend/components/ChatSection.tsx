@@ -218,7 +218,7 @@ export default function ChatSection() {
                 animate={{ opacity: 1, y: 0 }}
                 className={`flex items-start gap-4 ${msg.sender === "user" ? "justify-end" : ""}`}
               >
-                {msg.sender === "ai" && <Bot className="h-8 w-8 flex-shrink-0 text-orange-500" />}
+                {msg.sender === "ai" && <Bot className="h-8 w-8 shrink-0 text-orange-500" />}
                 <div
                   style={{ fontFamily: "'Baloo 2', cursive" }}
                   className={`max-w-lg rounded-2xl border-2 border-black px-5 py-3 shadow-[2px_2px_0px_#000] ${
@@ -227,7 +227,7 @@ export default function ChatSection() {
                 >
                   <p className="whitespace-pre-wrap text-base">{msg.text}</p>
                 </div>
-                {msg.sender === "user" && <User className="h-8 w-8 flex-shrink-0 text-gray-700" />}
+                {msg.sender === "user" && <User className="h-8 w-8 shrink-0 text-gray-700" />}
               </motion.div>
             ))}
             <div ref={messagesEndRef} />
@@ -272,7 +272,7 @@ export default function ChatSection() {
 
                 {attachedLink && (
                   <div className="flex items-center gap-2 rounded-full bg-orange-100 p-2 text-sm" style={{ fontFamily: "'Baloo 2', cursive" }}>
-                    <LinkIcon className="h-5 w-5 flex-shrink-0" />
+                    <LinkIcon className="h-5 w-5 shrink-0" />
                     <span className="max-w-[150px] truncate">{attachedLink}</span>
                     <button type="button" onClick={removeAttachedLink} className="p-1 hover:bg-orange-200 rounded-full"> <X className="h-4 w-4" /> </button>
                   </div>
@@ -280,7 +280,7 @@ export default function ChatSection() {
                 
                 {uploadedFilePath && (
                   <div className="flex items-center gap-2 rounded-full bg-orange-100 p-2 text-sm" style={{ fontFamily: "'Baloo 2', cursive" }}>
-                    <Paperclip className="h-5 w-5 flex-shrink-0" />
+                    <Paperclip className="h-5 w-5 shrink-0" />
                     <span className="max-w-[150px] truncate" title={uploadedFilePath}>{uploadedFilePath}</span>
                     <button type="button" onClick={() => setUploadedFilePath(null)} className="p-1 hover:bg-orange-200 rounded-full"> <X className="h-4 w-4" /> </button>
                   </div>
@@ -328,12 +328,12 @@ export default function ChatSection() {
                     const color = step.type === "Tool Call" ? "text-orange-600" : step.type === "Tool Output" ? "text-gray-600" : "text-green-600";
                     return (
                       <motion.div key={index} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="relative z-10 flex items-start gap-4">
-                        <div className={`flex-shrink-0 rounded-full border-2 border-gray-300 bg-white p-2 ${color}`}>
+                        <div className={`shrink-0 rounded-full border-2 border-gray-300 bg-white p-2 ${color}`}>
                           <Icon className="h-5 w-5" />
                         </div>
                         <div className="flex-1" style={{ fontFamily: "'Baloo 2', cursive" }}>
                           <p className={`font-bold ${color}`}>{step.type}</p>
-                          <p className="break-words text-sm text-gray-800">{step.content}</p>
+                          <p className="wrap-break-words text-sm text-gray-800">{step.content}</p>
                         </div>
                       </motion.div>
                     );
