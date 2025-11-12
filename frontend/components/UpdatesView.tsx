@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from "react"
 import { useAuth } from "../context/AuthContext" 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Loader2, MailCheck, ThumbsUp, ThumbsDown, AlertTriangle, Briefcase, Calendar } from "lucide-react"
+import { Loader2, MailCheck, ThumbsUp, ThumbsDown, AlertTriangle, Briefcase, Calendar, RefreshCw } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 
 interface Update {
@@ -73,15 +73,18 @@ const UpdateCard = ({
   }
 
   return (
-    <Card className="border-2 border-black rounded-2xl shadow-[2px_2px_0px_#000] bg-white transition-opacity duration-200" style={{ opacity: isProcessing ? 0.5 : 1 }}>
+    <Card 
+      className="border-2 border-black rounded-2xl shadow-[2px_2px_0px_#000] bg-white transition-all duration-200 hover:shadow-[4px_4px_0px_#000]" 
+      style={{ opacity: isProcessing ? 0.5 : 1 }}
+    >
       <CardHeader>
-        <div className="flex justify-between items-start">
-          <div className="flex-1">
-            <CardDescription className={`text-sm font-bold flex items-center ${color} ${bgColor} rounded-full px-3 py-1 w-fit`} style={{ fontFamily: "'Baloo 2', cursive" }}>
-              <Icon className="w-4 h-4 mr-2" />
+        <div className="flex justify-between items-start gap-4">
+          <div className="flex-1 min-w-0">
+            <CardDescription className={`text-sm font-bold flex items-center ${color} ${bgColor} rounded-full px-3 py-1 w-fit mb-2`} style={{ fontFamily: "'Baloo 2', cursive" }}>
+              <Icon className="w-4 h-4 mr-2 shrink-0" />
               {label}
             </CardDescription>
-            <CardTitle className="text-xl font-bold mt-2 pr-4" style={{ fontFamily: "'Baloo 2', cursive" }}>
+            <CardTitle className="text-xl font-bold wrap-break-words" style={{ fontFamily: "'Baloo 2', cursive" }}>
               {title}
             </CardTitle>
           </div>
@@ -91,7 +94,7 @@ const UpdateCard = ({
               size="icon"
               onClick={() => onFeedback(update.id, true)} 
               disabled={isProcessing}
-              className={`border-2 text-gray-400 hover:text-green-500 hover:bg-green-100 hover:border-green-500 transition-colors`}
+              className="border-2 text-gray-400 hover:text-green-500 hover:bg-green-100 hover:border-green-500 transition-colors disabled:opacity-50"
               title="This classification is correct"
             >
               <ThumbsUp className="w-5 h-5" />
@@ -101,7 +104,7 @@ const UpdateCard = ({
               size="icon"
               onClick={() => onFeedback(update.id, false)} 
               disabled={isProcessing}
-              className={`border-2 text-gray-400 hover:text-red-500 hover:bg-red-100 hover:border-red-500 transition-colors`}
+              className="border-2 text-gray-400 hover:text-red-500 hover:bg-red-100 hover:border-red-500 transition-colors disabled:opacity-50"
               title="This classification is wrong"
             >
               <ThumbsDown className="w-5 h-5" />
@@ -110,7 +113,7 @@ const UpdateCard = ({
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-gray-800" style={{ fontFamily: "'Baloo 2', cursive" }}>
+        <p className="text-gray-800 wrap-break-words" style={{ fontFamily: "'Baloo 2', cursive" }}>
           {update.summary}
         </p>
         <p className="text-xs text-gray-400 mt-4" style={{ fontFamily: "'Baloo 2', cursive" }}>
@@ -161,6 +164,7 @@ export default function UpdatesView() {
   const [isLoading, setIsLoading] = useState(true)
   const [isScanning, setIsScanning] = useState(false)
   const [processingIds, setProcessingIds] = useState<Set<number>>(new Set())
+  const [scanMessage, setScanMessage] = useState<string>("")
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   const fetchUpdates = async () => {
@@ -187,45 +191,47 @@ export default function UpdatesView() {
     fetchUpdates();
   }, [session, isFullyAuthenticated, apiUrl]);
 
-  // --- START: UPDATED FUNCTION ---
   const handleScanNow = async () => {
     if (!isFullyAuthenticated || !session?.accessToken) {
       requestProtectedAccess();
       return;
     }
+    
     setIsScanning(true);
+    setScanMessage("Starting email scan...");
+    
     try {
-      // 1. Tell the server to start the scan (fire and forget)
       const res = await fetch(`${apiUrl}/api/updates/scan_now`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${session.accessToken}` },
       });
 
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.detail || `HTTP error! status: ${res.status}`);
+      }
       
-      // 2. Server said "OK, I've started."
-      // Now, wait 5 seconds before refreshing the updates list
-      setTimeout(() => {
-        console.log("Scan started, fetching updates...");
-        fetchUpdates(); // 3. Re-fetch the updates
-      }, 5000); // 5-second delay
+      setScanMessage("Scanning in progress... This may take a minute.");
+      
+      // Wait 8 seconds, then refresh
+      setTimeout(async () => {
+        setScanMessage("Fetching results...");
+        await fetchUpdates();
+        setScanMessage("");
+        setIsScanning(false);
+      }, 8000);
 
     } catch (error) {
       console.error("Failed to trigger scan:", error);
-      // If the trigger itself fails, stop the loading spinner
+      setScanMessage(error instanceof Error ? error.message : "Scan failed");
       setIsScanning(false);
-    } finally {
-      // Set scanning to false after the 5-second delay
-      // fetchUpdates() will set its own loading spinner
-      setTimeout(() => setIsScanning(false), 5000);
+      setTimeout(() => setScanMessage(""), 3000);
     }
   };
-  // --- END: UPDATED FUNCTION ---
   
   const sendFeedback = async (updateId: number, isCorrect: boolean) => {
     if (!isFullyAuthenticated || !session?.accessToken) return;
     
-    // Mark as processing
     setProcessingIds(prev => new Set(prev).add(updateId));
 
     try {
@@ -242,7 +248,6 @@ export default function UpdatesView() {
       });
 
       if (res.ok) {
-        // Remove from UI on success
         setUpdates(prev => prev.filter(u => u.id !== updateId));
       } else {
         console.error("Feedback API failed:", res.status);
@@ -250,7 +255,6 @@ export default function UpdatesView() {
     } catch (error) {
       console.error("Failed to send feedback:", error);
     } finally {
-      // Remove from processing set
       setProcessingIds(prev => {
         const newSet = new Set(prev);
         newSet.delete(updateId);
@@ -285,7 +289,7 @@ export default function UpdatesView() {
     <Button 
       {...props} 
       style={{ fontFamily: "'Luckiest Guy', cursive", boxShadow: "2px 2px 0px #000" }} 
-      className="bg-orange-500 text-white border-2 border-black rounded-xl px-6 py-2 text-base hover:bg-orange-600 disabled:opacity-50"
+      className="bg-orange-500 text-white border-2 border-black rounded-xl px-6 py-2 text-base hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {children}
     </Button>
@@ -295,17 +299,35 @@ export default function UpdatesView() {
     <div className="flex flex-col h-full bg-white text-black">
       <header className="flex items-center ml-6 justify-between border-b-2 border-black bg-white p-4 flex-wrap gap-4">
         <h1 className="text-3xl font-bold" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
-          Mail Triage Assistant
+          📧 Mail Triage Assistant
         </h1>
-        <PrimaryButton onClick={handleScanNow} disabled={isScanning || !isFullyAuthenticated}>
-          {isScanning ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Scanning...</> : "Scan Emails Now"}
-        </PrimaryButton>
+        <div className="flex flex-col items-end gap-2">
+          <PrimaryButton onClick={handleScanNow} disabled={isScanning || !isFullyAuthenticated}>
+            {isScanning ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                Scanning...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Scan Emails Now
+              </>
+            )}
+          </PrimaryButton>
+          {scanMessage && (
+            <p className="text-sm text-gray-600" style={{ fontFamily: "'Baloo 2', cursive" }}>
+              {scanMessage}
+            </p>
+          )}
+        </div>
       </header>
       
       <div className="flex-1 overflow-y-auto p-4 md:p-8">
         <div className="w-full max-w-6xl mx-auto">
           <p className="text-gray-800 mb-8 text-lg" style={{ fontFamily: "'Baloo 2', cursive" }}>
-            Your ML model has triaged your inbox. Mark items as correct (👍) or incorrect (👎) to improve your model over time.
+            Your ML model has triaged your inbox into <strong>Deadlines</strong>, <strong>Career Opportunities</strong>, and <strong>Events</strong>. 
+            Give feedback with 👍 (correct) or 👎 (incorrect) to improve your model over time.
           </p>
 
           {isLoading ? (
@@ -338,7 +360,7 @@ export default function UpdatesView() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-800" style={{ fontFamily: "'Baloo 2', cursive" }}>
-                  No important updates were found. Click &quot;Scan Emails Now&quot; to check again.
+                  No important updates were found. Click &quot;Scan Emails Now&quot; to check for new emails.
                 </p>
               </CardContent>
             </Card>

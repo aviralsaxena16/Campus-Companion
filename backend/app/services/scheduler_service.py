@@ -1,6 +1,5 @@
 import os
 import json
-import httpx
 import time
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -8,112 +7,108 @@ from app import models
 from app.database import SessionLocal
 from app.agent.tools.gmail_json_tool import GmailJsonTool
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from transformers import pipeline
+import torch
 
 scheduler = AsyncIOScheduler()
 
-# --- CONFIGURATION: LOCAL/RENDER ENDPOINT ---
-# Set this to your local service OR your Render URL (e.g., https://my-classifier.onrender.com/classify/emails)
-HF_API_URL ="http://127.0.0.1:8000/classify/emails"
-# HF_API_KEY is no longer used for local access, but removed from logic below.
-# Setting it to None/blank is fine if your deployment doesn't need auth.
-HF_API_KEY = None # No longer needed, setting to None
+# --- CONFIGURATION ---
+# Load model directly from HuggingFace
+HF_MODEL_NAME = "aviralsaxena16/campus-mail-classifier"  # Your HF model repo
+DEVICE = 0 if torch.cuda.is_available() else -1  # Use GPU if available, else CPU
 
-# NOTE: The Authorization header remains in the code below but is only active 
-# if you set a key (e.g., when deploying to a protected cloud environment).
+# Initialize the classifier globally (loaded once at startup)
+print(f"[CLASSIFIER] Loading model from HuggingFace: {HF_MODEL_NAME}")
+print(f"[CLASSIFIER] Using device: {'GPU' if DEVICE == 0 else 'CPU'}")
+
+try:
+    classifier = pipeline(
+        "text-classification",
+        model=HF_MODEL_NAME,
+        device=DEVICE,
+        top_k=1  # Return top prediction only
+    )
+    print(f"[CLASSIFIER] ✓ Model loaded successfully!")
+except Exception as e:
+    print(f"[CLASSIFIER] ✗ Failed to load model: {e}")
+    classifier = None
 
 def classify_emails_batch(email_texts: list, max_retries: int = 3) -> list:
     """
-    Calls your self-hosted FastAPI model to classify a batch of emails.
+    Classifies emails using the HuggingFace model loaded directly.
     Returns a list of classifications or empty list on failure.
     """
-    
-    # We remove the check for HF_API_KEY being set, as local access does not need it.
-    
-    headers = {
-        # Only include Authorization if HF_API_KEY is actually set (e.g., for a cloud deploy)
-        "Authorization": f"Bearer {os.getenv('HF_API_KEY')}" if os.getenv('HF_API_KEY') else "",
-        "Content-Type": "application/json"
-    }
+    if classifier is None:
+        print("[CLASSIFIER] ✗ Model not loaded, cannot classify")
+        return []
     
     for attempt in range(max_retries):
         try:
-            print(f"Attempting API call to local service (attempt {attempt + 1}/{max_retries})...")
+            print(f"[CLASSIFIER] Classifying {len(email_texts)} emails (attempt {attempt + 1}/{max_retries})...")
             
-            # Use a robust timeout for the initial connection and slow inference
-            with httpx.Client(timeout=120.0) as client: 
-                response = client.post(
-                    HF_API_URL,
-                    headers=headers,
-                    # FIX: Correct JSON payload for the FastAPI Pydantic model
-                    json={"inputs": email_texts}
-                )
+            # Run inference
+            results = classifier(email_texts)
             
-            print(f"API Response Status: {response.status_code}")
+            # Format results to match expected structure
+            formatted_results = []
+            for result in results:
+                if isinstance(result, list) and len(result) > 0:
+                    # Result is already a list of predictions
+                    formatted_results.append(result)
+                else:
+                    # Wrap single prediction in list
+                    formatted_results.append([result])
             
-            # --- Success ---
-            if response.status_code == 200:
-                result = response.json()
-                print(f"API Success: Classified {len(email_texts)} emails")
-                return result
-            
-            # --- Generic Client/Server Error ---
-            elif response.status_code >= 400:
-                print(f"API Error {response.status_code}: Server returned an error.")
-                print(f"Response: {response.text}")
-                # Retry only on transient errors (e.g., 5xx), but here we only retry on timeout/exception
-                if response.status_code >= 500 and attempt < max_retries - 1:
-                    time.sleep(5)
-                    continue
-                return []
-
-        except httpx.TimeoutException:
-            print(f"API Timeout on attempt {attempt + 1}. Service may be waking up or slow.")
-            if attempt < max_retries - 1:
-                time.sleep(10) # Longer wait for slow local start
-                continue
-            return []
+            print(f"[CLASSIFIER] ✓ Successfully classified {len(email_texts)} emails")
+            return formatted_results
             
         except Exception as e:
-            print(f"API Exception on attempt {attempt + 1}: {type(e).__name__}: {e}")
+            print(f"[CLASSIFIER] ✗ Exception on attempt {attempt + 1}: {type(e).__name__}: {e}")
             if attempt < max_retries - 1:
-                time.sleep(5)
+                time.sleep(2)
                 continue
             return []
 
-    print("API: All retry attempts failed")
+    print("[CLASSIFIER] ✗ All retry attempts failed")
     return []
 
 
-# NOTE: The rest of your code (run_email_summary_for_user, scheduled functions) remains unchanged
-# as they correctly handle the DB logic and schedule management.
 def run_email_summary_for_user(user_email: str) -> list:
     """
     Scan emails for a user, classify them with ML model, and save important ones to DB
     """
-    print(f"TASK: Running ML email scan for {user_email}...")
+    print(f"\n{'='*60}")
+    print(f"[SCAN] Starting email scan for: {user_email}")
+    print(f"{'='*60}")
+    
     db: Session = SessionLocal()
     try:
+        # 1. Get user from database
         user = db.query(models.User).filter(models.User.email == user_email).first()
-        if not user or not user.google_refresh_token:
-            print(f"TASK: Skipping scan for {user_email}, no refresh token.")
+        if not user:
+            print(f"[SCAN] ✗ User not found: {user_email}")
+            return []
+            
+        if not user.google_refresh_token:
+            print(f"[SCAN] ✗ No Google refresh token for {user_email}")
             return []
 
-        # Fetch emails from Gmail
-        print(f"TASK: Fetching emails from Gmail...")
+        # 2. Fetch emails from Gmail
+        print(f"[SCAN] Fetching emails from Gmail...")
         gmail_tool = GmailJsonTool(user_email=user_email)
         emails_json_str = gmail_tool.run()
         
         try:
             emails = json.loads(emails_json_str)
             if not isinstance(emails, list) or not emails:
-                print(f"TASK: No emails found for {user_email}")
+                print(f"[SCAN] No emails found")
                 return []
-            print(f"TASK: Retrieved {len(emails)} total emails from Gmail")
+            print(f"[SCAN] ✓ Retrieved {len(emails)} total emails")
         except (json.JSONDecodeError, TypeError) as e:
-            print(f"TASK: Failed to parse emails JSON: {e}")
+            print(f"[SCAN] ✗ Failed to parse emails JSON: {e}")
             return []
 
-        # Get already processed email IDs
+        # 3. Filter out already processed emails
         processed_email_ids = {
             update.source_id
             for update in db.query(models.ImportantUpdate)
@@ -121,35 +116,36 @@ def run_email_summary_for_user(user_email: str) -> list:
                 .all()
         }
         
-        # Filter out already processed emails
         new_emails = [
             email for email in emails
             if email.get("id") not in processed_email_ids
         ]
 
-        print(f"TASK: Found {len(new_emails)} new emails to classify")
+        print(f"[SCAN] Found {len(new_emails)} new emails (out of {len(emails)} total)")
         
         if not new_emails:
-            print(f"TASK: No new emails to process, returning existing updates")
-            return db.query(models.ImportantUpdate)\
+            print(f"[SCAN] No new emails to process")
+            existing_updates = db.query(models.ImportantUpdate)\
                 .filter(models.ImportantUpdate.user_id == user.id)\
                 .filter(models.ImportantUpdate.is_important == True)\
                 .order_by(models.ImportantUpdate.discovered_at.desc())\
                 .limit(50)\
                 .all()
+            print(f"[SCAN] Returning {len(existing_updates)} existing important updates")
+            return existing_updates
 
-        # Prepare email texts for classification
+        # 4. Prepare email texts for classification
         email_texts = [
             f"Subject: {email.get('subject', 'No Subject')}\nBody: {email.get('body_snippet', '')}"
             for email in new_emails
         ]
 
-        # Classify emails using ML model
-        print(f"TASK: Calling HF API to classify {len(email_texts)} emails...")
+        # 5. Classify emails using ML model
+        print(f"[SCAN] Classifying {len(email_texts)} emails...")
         classifications = classify_emails_batch(email_texts)
 
         if not classifications:
-            print("TASK: Classification failed, returning existing updates without processing new emails")
+            print("[SCAN] ✗ Classification failed, returning existing updates")
             return db.query(models.ImportantUpdate)\
                 .filter(models.ImportantUpdate.user_id == user.id)\
                 .filter(models.ImportantUpdate.is_important == True)\
@@ -157,30 +153,35 @@ def run_email_summary_for_user(user_email: str) -> list:
                 .limit(50)\
                 .all()
 
-        # Process classifications and save important emails
+        # 6. Process classifications and save important emails
+        print(f"\n[CLASSIFICATION RESULTS]")
+        print("-" * 60)
+        
         new_updates_to_save = []
         for i, email in enumerate(new_emails):
             if i >= len(classifications):
-                print(f"WARNING: Classification list shorter than email list at index {i}")
+                print(f"⚠ Warning: Classification missing for email {i}")
                 break
             
-            # Get the top prediction
             classification_result = classifications[i]
             
-            # Handle both list of dicts and single dict formats
+            # Handle both list and dict formats
             if isinstance(classification_result, list) and len(classification_result) > 0:
                 top_prediction = classification_result[0]
             elif isinstance(classification_result, dict):
                 top_prediction = classification_result
             else:
-                print(f"WARNING: Unexpected classification format for email {i}: {type(classification_result)}")
+                print(f"⚠ Unexpected format for email {i}: {type(classification_result)}")
                 continue
 
             label = top_prediction.get('label', 'GENERAL')
             score = top_prediction.get('score', 0.0)
+            subject = email.get('subject', 'No Subject')[:50]
             
             # Only save important emails (not SPAM/GENERAL)
-            if label not in ["SPAM/PROMO", "GENERAL", "SPAM", "PROMO"] and score > 0.6:
+            is_important = label not in ["SPAM/PROMO", "GENERAL", "SPAM", "PROMO"] and score > 0.6
+            
+            if is_important:
                 new_update = models.ImportantUpdate(
                     user_id=user.id,
                     source_id=email['id'],
@@ -189,19 +190,21 @@ def run_email_summary_for_user(user_email: str) -> list:
                     is_important=True
                 )
                 new_updates_to_save.append(new_update)
-                print(f"TASK: ✓ Classified as {label} (confidence: {score:.2f}): {email.get('subject', 'No Subject')[:50]}")
+                print(f"✓ {label:12} ({score:.2f}) - {subject}")
             else:
-                print(f"TASK: ✗ Skipped {label} (confidence: {score:.2f}): {email.get('subject', 'No Subject')[:50]}")
+                print(f"✗ {label:12} ({score:.2f}) - {subject}")
+        
+        print("-" * 60)
                 
-        # Save new updates to database
+        # 7. Save new updates to database
         if new_updates_to_save:
             db.add_all(new_updates_to_save)
             db.commit()
-            print(f"TASK: ✓ Saved {len(new_updates_to_save)} new ML-classified updates for {user_email}.")
+            print(f"\n[SCAN] ✓ Saved {len(new_updates_to_save)} important updates")
         else:
-            print(f"TASK: No important emails found for {user_email} (all were SPAM/GENERAL or low confidence)")
+            print(f"\n[SCAN] No important emails found (all filtered as SPAM/GENERAL)")
 
-        # Return all important updates
+        # 8. Return all important updates
         all_updates = db.query(models.ImportantUpdate)\
             .filter(models.ImportantUpdate.user_id == user.id)\
             .filter(models.ImportantUpdate.is_important == True)\
@@ -209,11 +212,14 @@ def run_email_summary_for_user(user_email: str) -> list:
             .limit(50)\
             .all()
         
-        print(f"TASK: Returning {len(all_updates)} total important updates")
+        print(f"[SCAN] ✓ Complete! Returning {len(all_updates)} total important updates")
+        print(f"{'='*60}\n")
         return all_updates
 
     except Exception as e:
-        print(f"ERROR in email scan for {user_email}: {type(e).__name__}: {e}")
+        print(f"\n[SCAN] ✗✗✗ ERROR ✗✗✗")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Error message: {e}")
         import traceback
         traceback.print_exc()
         db.rollback()
@@ -226,9 +232,15 @@ def scheduled_job_wrapper(user_email: str):
     """Wrapper for scheduler to call the email scan"""
     run_email_summary_for_user(user_email)
 
+
 def start_scheduler_for_user(user_email: str):
     """Schedule daily email scans for a user"""
     job_id = f"email_scan_{user_email}"
+    
+    if not scheduler.running:
+        scheduler.start()
+        print(f"[SCHEDULER] ✓ Scheduler started")
+    
     if not scheduler.get_job(job_id):
         scheduler.add_job(
             scheduled_job_wrapper,
@@ -237,6 +249,6 @@ def start_scheduler_for_user(user_email: str):
             args=[user_email],
             id=job_id
         )
-        print(f"SCHEDULER: Scheduled daily email scan for {user_email}.")
+        print(f"[SCHEDULER] ✓ Scheduled daily email scan for {user_email}")
     else:
-        print(f"SCHEDULER: Job already exists for {user_email}")
+        print(f"[SCHEDULER] Job already exists for {user_email}")
