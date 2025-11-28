@@ -165,6 +165,7 @@ export default function UpdatesView() {
   const [isScanning, setIsScanning] = useState(false)
   const [processingIds, setProcessingIds] = useState<Set<number>>(new Set())
   const [scanMessage, setScanMessage] = useState<string>("")
+  const [error, setError] = useState<string>("")
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   const fetchUpdates = async () => {
@@ -173,15 +174,19 @@ export default function UpdatesView() {
       return;
     }
     setIsLoading(true);
+    setError("");
     try {
       const res = await fetch(`${apiUrl}/api/updates`, {
         headers: { "Authorization": `Bearer ${session.accessToken}` }
       });
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      if (!res.ok) {
+        throw new Error(`Failed to fetch updates: ${res.status}`);
+      }
       const data = await res.json();
       setUpdates(data);
     } catch (error) {
       console.error("Failed to fetch updates:", error);
+      setError(error instanceof Error ? error.message : "Failed to load updates");
     } finally {
       setIsLoading(false);
     }
@@ -199,6 +204,7 @@ export default function UpdatesView() {
     
     setIsScanning(true);
     setScanMessage("Starting email scan...");
+    setError("");
     
     try {
       const res = await fetch(`${apiUrl}/api/updates/scan_now`, {
@@ -207,7 +213,7 @@ export default function UpdatesView() {
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
+        const errorData = await res.json().catch(() => ({ detail: "Scan failed" }));
         throw new Error(errorData.detail || `HTTP error! status: ${res.status}`);
       }
       
@@ -217,15 +223,17 @@ export default function UpdatesView() {
       setTimeout(async () => {
         setScanMessage("Fetching results...");
         await fetchUpdates();
-        setScanMessage("");
+        setScanMessage("✓ Scan complete!");
+        setTimeout(() => setScanMessage(""), 2000);
         setIsScanning(false);
       }, 8000);
 
     } catch (error) {
       console.error("Failed to trigger scan:", error);
-      setScanMessage(error instanceof Error ? error.message : "Scan failed");
+      const errorMessage = error instanceof Error ? error.message : "Scan failed";
+      setScanMessage("");
+      setError(errorMessage);
       setIsScanning(false);
-      setTimeout(() => setScanMessage(""), 3000);
     }
   };
   
@@ -248,12 +256,17 @@ export default function UpdatesView() {
       });
 
       if (res.ok) {
+        // Remove from UI immediately
         setUpdates(prev => prev.filter(u => u.id !== updateId));
       } else {
         console.error("Feedback API failed:", res.status);
+        setError("Failed to submit feedback");
+        setTimeout(() => setError(""), 3000);
       }
     } catch (error) {
       console.error("Failed to send feedback:", error);
+      setError("Failed to submit feedback");
+      setTimeout(() => setError(""), 3000);
     } finally {
       setProcessingIds(prev => {
         const newSet = new Set(prev);
@@ -318,6 +331,11 @@ export default function UpdatesView() {
           {scanMessage && (
             <p className="text-sm text-gray-600" style={{ fontFamily: "'Baloo 2', cursive" }}>
               {scanMessage}
+            </p>
+          )}
+          {error && (
+            <p className="text-sm text-red-600" style={{ fontFamily: "'Baloo 2', cursive" }}>
+              ⚠️ {error}
             </p>
           )}
         </div>

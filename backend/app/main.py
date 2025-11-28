@@ -10,7 +10,7 @@ from app.database import engine
 from app import models
 from contextlib import asynccontextmanager
 from app.services.scheduler_service import scheduler
-from app.mail_classifier import router as mail_router
+# from app.mail_classifier import router as mail_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -41,7 +41,7 @@ app.add_middleware(
 app.include_router(chat.router, prefix="/api")
 app.include_router(user.router, prefix="/api")
 app.include_router(updates.router, prefix="/api")
-app.include_router(mail_router, prefix="/api")
+# app.include_router(mail_router, prefix="/api")
 
 @app.api_route("/", methods=["GET", "HEAD"])
 def read_root():
