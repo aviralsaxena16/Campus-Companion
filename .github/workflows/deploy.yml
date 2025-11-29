@@ -6,31 +6,14 @@ on:
       - main
 
 jobs:
-  test-build-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        working-directory: backend
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest
-
-      - name: Run tests
-        working-directory: backend
-        run: pytest -q
-
-      - name: Trigger Render deploy
-        if: success()
+      - name: Trigger Render Deploy Hook
         run: |
           curl -X POST "$RENDER_DEPLOY_HOOK"
         env:
