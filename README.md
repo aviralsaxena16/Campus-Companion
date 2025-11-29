@@ -39,15 +39,12 @@ It reads your PDFs, scans websites, understands your Gmail inbox, classifies imp
 
 <p align="center">
  <img width="70%" alt="Campus Companion UI" src="https://github.com/user-attachments/assets/917cfde4-8c6a-4e0a-9c25-ed7ae9112f22" />
+<img width="70%" alt="Screenshot 2025-11-20 233449" src="https://github.com/user-attachments/assets/2ebc9a22-b1dd-441c-8421-3754a47c42a6" />
+
 </p>
 
 ---
 
-## 🎥 Demo Video
-
-📺 **[Watch the Demo on Google Drive](https://drive.google.com/file/d/15Yd4YmEe62-l7Q4d8gWZu-rR9bkkMxb3/view?usp=sharing)**
-
----
 
 ## 🛠 Tech Stack
 
