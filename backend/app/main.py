@@ -11,6 +11,8 @@ from app import models
 from contextlib import asynccontextmanager
 from app.services.scheduler_service import scheduler
 # from app.mail_classifier import router as mail_router
+from dotenv import load_dotenv
+load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

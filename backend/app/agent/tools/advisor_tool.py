@@ -8,6 +8,14 @@ from langchain_core.output_parsers.json import JsonOutputParser
 import os
 from langchain_google_genai import ChatGoogleGenerativeAI
 
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+if not GOOGLE_API_KEY:
+    raise ValueError("GOOGLE_API_KEY is not set!")
+
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash", 
     google_api_key=os.getenv("GOOGLE_API_KEY"), 
