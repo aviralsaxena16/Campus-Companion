@@ -1,82 +1,84 @@
-# Campus Companion: Your Proactive AI University Navigator 🚀  
+# 📚 Campus Companion – Your Proactive AI University Navigator 🚀
 
-**Clarity in your studies. Calm in your mind.**  
+**Clarity in your studies. Calm in your mind.**
 
----
-
-## 📌 Project Information  
-
-- **Name:** Aviral Saxena  
-- **University:** Indian Institute of Technology Bhilai (IIT Bhilai)  
-- **Department:** Computer Science and Engineering (CSE)  
+Campus Companion is a multi-agent AI platform that helps students escape digital overload by unifying emails, PDFs, websites, competitive programming contests, and personal goals into a single intelligent workspace. It proactively schedules events, classifies important emails, generates roadmaps, and shows full agent reasoning in real time.
 
 <p align="center">
- <img width="80%" alt="Screenshot 2025-09-17 095256" src="https://github.com/user-attachments/assets/85b26127-2a86-4ba0-9060-eb34f1eb7753" />
-
-</p>  
-
----
-
-## ❗ The Problem: The Student's "Digital Overload" 😥  
-
-In today's university environment, students are inundated with a relentless stream of information.  
-
-Critical opportunities—career-defining internships, skill-building workshops, and essential academic deadlines—are scattered across a chaotic digital landscape of department websites, emails, and PDFs.  
-
-This manual effort creates a pervasive **"Fear of Missing Out" (FOMO)**, impacting students' focus and mental well-being.  
+ <img width="80%" alt="Campus Companion Screenshot" src="https://github.com/user-attachments/assets/85b26127-2a86-4ba0-9060-eb34f1eb7753" />
+</p>
 
 ---
 
-## 💡 The Solution: A Proactive AI Partner  
+## ❗ Problem: The Student Digital Overload
 
-**Campus Companion** is an intelligent agent built to combat this digital overload.  
-
-It serves as a **proactive digital partner** that automates the entire opportunity-management lifecycle, transforming **chaos into clarity**.  
-
-More than just a productivity tool, Campus Companion is designed to **reduce cognitive load and anxiety**, allowing students to focus on what truly matters.  
+Students must constantly monitor scattered information sources—department websites, Gmail, PDFs, competitions, and announcements.  
+This leads to a constant **Fear of Missing Out (FOMO)**, missed opportunities, and unnecessary cognitive load.
 
 ---
 
-## ✨ Key Features  
+## 💡 Solution: A Proactive AI Partner
+
+Campus Companion serves as an AI-powered personal university assistant.  
+It reads your PDFs, scans websites, understands your Gmail inbox, classifies important emails, schedules events, and generates roadmaps—all through a unified intelligence layer.
+
+---
+
+## ✨ Key Features
 
 | Feature | Description |
 |---------|-------------|
-| 🧠 **Multi-Modal Intelligence** | Ingests and understands information from live websites, Gmail, and PDFs, featuring a full Retrieval-Augmented Generation (RAG) system for document Q&A and also can schedule the events in them directly to your calendar. |
-| 🔍 **Proactive Discovery** | Automatically scans platforms like LeetCode and Codeforces via public APIs to find and can update it to your calendar the upcoming competitive programming contests with just a prompt. |
-| 🤖 **Automated Scheduling** | Intelligently parses event details from any source and adds them directly to the user's Google Calendar on a single prompt. |
-| 🖥️ **Plan Monitoring & Editing UI** | A user interface that allows monitoring the agent's step-by-step reasoning in real time, and editing or customizing the agent’s plan. |
-| 🗺️ **Strategic Advisor** | Generates personalized, step-by-step roadmaps for goals like hackathon preparation. Users can edit the agent's plan and download the final version as a PDF. |
-| 📬 **Scheduled Updates** | Runs a daily background job to scan the user's inbox for important messages, summarizing them in a dedicated **Important Updates** section of the UI. |
+| 🧠 **Unified Multi-Source AI Chat** | Query PDFs (embedded via pg_vector), live websites, and Gmail in one place. The agent can also schedule events directly to Google Calendar. |
+| 🤖 **Agent Thinking UI** | View the agent’s full reasoning: tool calls, retrievals, plans, and execution. |
+| 📬 **Email Classifier (DistilBERT)** | Fine-tuned model that classifies emails as Career, Event, Deadline, Normal, or Spam. |
+| ⏱️ **24-Hour Scheduled Agent** | Automatically scans for new important emails daily; includes a manual **Scan Now** button. |
+| 🗺️ **Roadmap Generator** | Creates personalized, editable skill roadmaps for any goal, with PDF download and popularity ranking. |
+| 🕸️ **Website + PDF + Email RAG** | Multi-source Retrieval-Augmented Generation ensures accurate and contextual responses. |
+| 📆 **Automated Calendar Scheduling** | Parses events and deadlines from any source and adds them to Google Calendar. |
+| 🧩 **Contest Discovery** | Fetches upcoming contests from Codeforces, LeetCode, and CLIST with a single prompt. |
 
 <p align="center">
- <img width="70%" alt="Screenshot 2025-09-17 020434" src="https://github.com/user-attachments/assets/917cfde4-8c6a-4e0a-9c25-ed7ae9112f22" />
-
-</p>  
-
+ <img width="70%" alt="Campus Companion UI" src="https://github.com/user-attachments/assets/917cfde4-8c6a-4e0a-9c25-ed7ae9112f22" />
+</p>
 
 ---
 
-### 🎥 Live Demo Video
+## 🎥 Demo Video
 
+📺 **[Watch the Demo on Google Drive](https://drive.google.com/file/d/15Yd4YmEe62-l7Q4d8gWZu-rR9bkkMxb3/view?usp=sharing)**
 
-[**Watch the full demo of Campus Companion on Google Drive**](https://drive.google.com/file/d/15Yd4YmEe62-l7Q4d8gWZu-rR9bkkMxb3/view?usp=sharing)
-
-*(For a full breakdown, please see the **[System Design Document](link-to-your-sdd.pdf)** in this repository.)*
 ---
 
-## 🛠️ Tech Stack & Architecture  
+## 🛠 Tech Stack
 
-The application is built on a **modern three-tier architecture** designed for scalability and responsiveness.  
-
-| Category   | Technologies |
-|------------|--------------|
+| Layer | Technologies |
+|-------|--------------|
 | **Frontend** | Next.js, TailwindCSS |
-| **Backend**  | FastAPI |
-| **AI Core**  | Langchain, RAG Pipeline |
-| **Database** | Supabase (PostgreSQL) |
-| **Tools**    | Google APIs (Gmail, Calendar), CList API,Codeforces API |
+| **Backend** | FastAPI |
+| **AI / Agents** | LangChain, Multi-tool Agents, RAG |
+| **Embeddings** | Supabase (pg_vector) |
+| **ML Model** | Fine-tuned DistilBERT (2500+ samples) |
+| **Integrations** | Gmail API, Google Calendar API, CList API, Codeforces API |
 
-📖 *(For a full breakdown, please see the **System Design Document** in this repository.)*  
+---
+
+## 🧱 Architecture Overview
+
+Campus Companion contains three major pipelines:
+
+### 1. Multi-Source RAG Pipeline
+- PDF ingestion + pg_vector embeddings  
+- Website extraction using Playwright  
+- Gmail fetch + summarization  
+
+### 2. Important Email Updates Pipeline
+- 24-hour scheduled background agent  
+- Manual “Scan Now” trigger  
+- DistilBERT-based classification  
+
+### 3. Calendar Automation Pipeline
+- Extracts dates/events from any source  
+- Auto-creates Google Calendar events  
 
 ---
 
