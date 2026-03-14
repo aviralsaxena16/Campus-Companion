@@ -23,7 +23,7 @@ jobs:
 
     env:
       GOOGLE_API_KEY: dummy
-      SUPABASE_URL: dummy
+      SUPABASE_URL: https://dummy.supabase.co
       SUPABASE_SERVICE_KEY: dummy
       DATABASE_URL: postgresql://test:test@localhost:5432/testdb
       GOOGLE_AUDIENCE_CLIENT_ID: dummy
