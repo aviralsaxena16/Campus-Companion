@@ -21,6 +21,17 @@ jobs:
         ports:
           - 5432:5432
 
+    env:
+      GOOGLE_API_KEY: dummy
+      SUPABASE_URL: dummy
+      SUPABASE_SERVICE_KEY: dummy
+      DATABASE_URL: postgresql://test:test@localhost:5432/testdb
+      GOOGLE_AUDIENCE_CLIENT_ID: dummy
+      GROQ_API_KEY: dummy
+      HF_API_KEY: dummy
+      CLIST_API_KEY: dummy
+      VERCEL_URL: dummy
+
     steps:
 
       - name: Checkout repository
