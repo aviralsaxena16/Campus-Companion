@@ -1,0 +1,51 @@
+name: Python CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run Lint
+        run: |
+          pip install flake8
+          flake8 app
+
+      - name: Run Tests
+        run: |
+          pytest tests --maxfail=1 --disable-warnings -q
+
+      - name: Generate Coverage
+        run: |
+          pip install coverage
+          coverage run -m pytest
+          coverage report

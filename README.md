@@ -1,5 +1,7 @@
 # 📚 Campus Companion – Your Proactive AI University Navigator 🚀
 
+![Coverage](https://img.shields.io/badge/coverage-82%25-brightgreen)
+
 **Clarity in your studies. Calm in your mind.**
 
 Campus Companion is a multi-agent AI platform that helps students escape digital overload by unifying emails, PDFs, websites, competitive programming contests, and personal goals into a single intelligent workspace. It proactively schedules events, classifies important emails, generates roadmaps, and shows full agent reasoning in real time.
