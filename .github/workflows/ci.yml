@@ -1,4 +1,4 @@
-name: Python CI
+name: Backend CI
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
 jobs:
 
   test:
+
     runs-on: ubuntu-latest
 
     services:
@@ -34,19 +35,19 @@ jobs:
         run: |
           cd backend
           pip install -r requirements.txt
+          pip install pytest pytest-asyncio httpx flake8
 
       - name: Run Lint
         run: |
           cd backend
-          pip install flake8
-          flake8 app
+          flake8 .
 
       - name: Run Tests
         run: |
           cd backend
-          pytest tests --maxfail=1 --disable-warnings -q
+          pytest tests -v
 
-      - name: Generate Coverage
+      - name: Run Coverage
         run: |
           cd backend
           pip install coverage
