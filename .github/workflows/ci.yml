@@ -32,20 +32,24 @@ jobs:
 
       - name: Install dependencies
         run: |
+          cd backend
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
       - name: Run Lint
         run: |
+          cd backend
           pip install flake8
           flake8 app
 
       - name: Run Tests
         run: |
+          cd backend
           pytest tests --maxfail=1 --disable-warnings -q
 
       - name: Generate Coverage
         run: |
+          cd backend
           pip install coverage
           coverage run -m pytest
           coverage report
