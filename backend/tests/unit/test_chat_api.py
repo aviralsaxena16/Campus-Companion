@@ -13,6 +13,6 @@ def test_chat_stream(client: TestClient):
     with patch("app.agent.orchestrator.get_agent_response") as mock_agent:
         mock_agent.return_value = None
 
-        response = client.post("/chat/stream", json=payload, headers=headers)
+        response = client.post("/api/chat/stream", json=payload, headers=headers)
 
         assert response.status_code == 200

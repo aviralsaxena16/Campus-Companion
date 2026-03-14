@@ -7,6 +7,6 @@ def test_feedback_submission(client):
 
     headers = {"Authorization": "Bearer fake-token"}
 
-    response = client.post("/updates/feedback", json=payload, headers=headers)
+    response = client.post("/api/updates/feedback", json=payload, headers=headers)
 
     assert response.status_code in [200, 404]

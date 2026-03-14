@@ -12,6 +12,6 @@ def test_predict_dummy():
         "subject": "Career Fair",
         "body": "There is a hiring drive on campus"
     }
-    res = client.post("/predict", json=payload)
+    res = client.post("/api/predict", json=payload)
     assert res.status_code == 200
     assert "label" in res.json()

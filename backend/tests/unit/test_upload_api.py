@@ -10,6 +10,6 @@ def test_file_upload(client):
 
     headers = {"Authorization": "Bearer fake-token"}
 
-    response = client.post("/files/upload", files=files, headers=headers)
+    response = client.post("/api/files/upload", files=files, headers=headers)
 
     assert response.status_code in [200, 500]
