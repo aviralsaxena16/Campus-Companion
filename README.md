@@ -6,7 +6,7 @@
   </p>
   <p>
     <a href="https://campus-companion-six.vercel.app"><img src="https://img.shields.io/badge/Live%20Demo-Campus%20Companion-orange?style=for-the-badge&logo=vercel" alt="Live Demo"/></a>
-    <a href="https://huggingface.co/aviralsaxena16/campus_mail_classifier_distilbert"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Mail%20Classifier-FFD21E?style=for-the-badge" alt="Hugging Face Model"/></a>
+    <a href="https://huggingface.co/aviralsaxena16/campus_mail_classifier_distilbert"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-%20Classifier-FFD21E?style=for-the-badge" alt="Hugging Face Model"/></a>
     <img src="https://img.shields.io/badge/Docker-Enabled-2496ED?style=for-the-badge&logo=docker" alt="Docker"/>
     <img src="https://img.shields.io/badge/CI-Passing-brightgreen?style=for-the-badge&logo=github-actions" alt="CI Passing"/>
     <img src="https://img.shields.io/badge/Coverage-82%25-brightgreen?style=for-the-badge" alt="Coverage 82%"/>
