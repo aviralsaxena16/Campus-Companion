@@ -323,7 +323,7 @@ The model is served via Hugging Face Inference API. User feedback (👍/👎) is
 ---
 
 <div align="center">
-  Built with ❤️ by <a href="https://github.com/aviralsaxena16">Aviral Saxena</a> and contributors
+  Built with ❤️ by <a href="https://github.com/aviralsaxena16">Aviral Saxena</a> 
   <br/>
   <a href="https://campus-companion-six.vercel.app">Live Demo</a> · <a href="https://github.com/aviralsaxena16/Campus-Companion/issues">Report a Bug</a> · <a href="https://github.com/aviralsaxena16/Campus-Companion/pulls">Contribute</a>
 </div>
