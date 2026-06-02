@@ -46,13 +46,13 @@
 
 ## ❗ The Problem
 
-Students juggle a fragmented digital landscape — department portals, Gmail, PDFs, contest pages, and Slack channels — all demanding constant attention. The result is a chronic **Fear Of Missing Out (FOMO)**: missed scholarship deadlines, overlooked internship postings, and skipped events. This cognitive overhead degrades both academic performance and mental health.
+Students juggle a fragmented digital landscape department portals, Gmail, PDFs, contest pages, and Slack channels all demanding constant attention. The result is a chronic **Fear Of Missing Out (FOMO)**: missed scholarship deadlines, overlooked internship postings, and skipped events. This cognitive overhead degrades both academic performance and mental health.
 
 ---
 
 ## 💡 The Solution
 
-Campus Companion is a **proactive AI partner** — not just a chatbot. It autonomously monitors information sources on a schedule, classifies what matters, and surfaces it at the right time. The agent reasons transparently, showing its tool calls, retrieval steps, and execution plan in real time so students always know *why* something was flagged.
+Campus Companion is a **proactive AI partner** not just a chatbot. It autonomously monitors information sources on a schedule, classifies what matters, and surfaces it at the right time. The agent reasons transparently, showing its tool calls, retrieval steps, and execution plan in real time so students always know *why* something was flagged.
 
 ---
 
